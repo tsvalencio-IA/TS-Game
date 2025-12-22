@@ -1,18 +1,11 @@
 {
   "name": "thIAguinho Arcade",
-  "short_name": "Arcade",
-  "start_url": "./index.html",
+  "short_name": "thIAguinho",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#111111",
-  "theme_color": "#ffcc00",
-  "orientation": "portrait",
-  "scope": "./",
+  "theme_color": "#c92a2a",
   "icons": [
-    {
-      "src": "assets/mascote_perfil.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg"
-    },
     {
       "src": "assets/mascote_perfil.jpg",
       "sizes": "512x512",
