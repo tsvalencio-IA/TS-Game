@@ -3,27 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>thIAguinho Game Engine</title>
+    <title>thIAguinho Game Engine V2</title>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; }
         
-        /* Câmera Selfie (HUD) */
-        #video-container { position: absolute; top: 10px; right: 10px; width: 100px; height: 133px; z-index: 10; border: 2px solid #fff; border-radius: 10px; overflow: hidden; background: #000; opacity: 0.7; }
+        /* HUD (Interface) */
+        #hud-container { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; z-index: 10; pointer-events: none; display: flex; justify-content: space-between; }
+        .hud-box { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 10px; border-left: 5px solid #ffcc00; color: white; }
+        .hud-title { font-size: 24px; font-weight: bold; font-style: italic; color: #ffcc00; text-shadow: 2px 2px 0 #000; }
+        .hud-score { font-size: 32px; font-weight: bold; }
+        
+        /* Câmera Selfie */
+        #video-container { position: absolute; bottom: 20px; right: 20px; width: 100px; height: 133px; z-index: 10; border: 2px solid #fff; border-radius: 10px; overflow: hidden; background: #000; opacity: 0.8; }
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-
-        /* Placar / HUD */
-        #hud { position: absolute; top: 20px; left: 20px; z-index: 10; color: #ffcc00; font-weight: bold; font-size: 24px; text-shadow: 2px 2px 0 #000; font-style: italic; }
-        #sub-hud { font-size: 16px; color: white; }
 
         /* Loading */
         #loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #ffcc00; z-index: 100; }
-        .spinner { border: 4px solid #333; border-top: 4px solid #ffcc00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        .spinner { border: 4px solid #333; border-top: 4px solid #ffcc00; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Botão Voltar */
-        .back-btn { position: fixed; bottom: 20px; left: 20px; z-index: 20; background: rgba(255,0,0,0.8); color: white; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px black; }
-        
+        /* Botão Sair */
+        .back-btn { position: fixed; top: 20px; right: 20px; z-index: 20; background: #cc0000; color: white; width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; pointer-events: auto; }
+
         canvas { display: block; width: 100vw; height: 100vh; }
     </style>
 
@@ -35,16 +37,22 @@
 </head>
 <body>
 
-    <button onclick="window.location.href='index.html'" class="back-btn"><i class='bx bx-home'></i></button>
+    <button onclick="window.location.href='index.html'" class="back-btn"><i class='bx bx-x'></i></button>
 
     <div id="loading">
         <div class="spinner"></div>
-        <h2 id="loading-text">CARREGANDO...</h2>
+        <h2 id="loading-text">CARREGANDO MOTOR DE JOGO...</h2>
     </div>
 
-    <div id="hud">
-        <span id="game-title">MODO LIVRE</span>
-        <div id="sub-hud">Pontos: 0</div>
+    <div id="hud-container">
+        <div class="hud-box">
+            <div id="game-title" class="hud-title">MODO</div>
+            <div id="instruction-text" style="font-size: 14px; color: #ccc">Carregando...</div>
+        </div>
+        <div class="hud-box">
+            <div style="font-size: 12px; text-transform: uppercase;">Pontuação</div>
+            <div id="score-display" class="hud-score">0</div>
+        </div>
     </div>
     
     <div id="video-container">
@@ -53,186 +61,234 @@
 
     <script>
         // =========================================================
-        // 0. DETECÇÃO DO MODO DE JOGO (URL)
+        // CONFIGURAÇÕES GLOBAIS
         // =========================================================
         const params = new URLSearchParams(window.location.search);
-        const GAME_MODE = params.get('mode') || 'dance'; // dance, run, race
+        const GAME_MODE = params.get('mode') || 'dance'; 
         
-        // Configurações Visuais
-        const MODEL_URL = './assets/mascote.glb';
-        const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/webxr-academy/assets/models/ybot.glb';
-        
+        const ASSETS = {
+            model: './assets/mascote.glb',
+            fallback: 'https://cdn.jsdelivr.net/gh/webxr-academy/assets/models/ybot.glb',
+            roadTexture: './assets/estrada.jpg', // Você precisa colocar essa imagem
+            raceTexture: './assets/pista.jpg'    // Você precisa colocar essa imagem
+        };
+
         // Elementos DOM
-        const hudTitle = document.getElementById('game-title');
-        const hudSub = document.getElementById('sub-hud');
-        const loadingScreen = document.getElementById('loading');
-        const loadingText = document.getElementById('loading-text');
+        const elTitle = document.getElementById('game-title');
+        const elInstr = document.getElementById('instruction-text');
+        const elScore = document.getElementById('score-display');
+        const elLoading = document.getElementById('loading');
+        const elLoadText = document.getElementById('loading-text');
 
         // Estado do Jogo
         let score = 0;
-        let speed = 0; // Para corrida
-        let carPositionX = 0; // Para corrida de carro
-        
-        // Atualiza Títulos
-        if(GAME_MODE === 'run') { hudTitle.innerText = "🏃 CORRIDA DE RUA"; loadingText.innerText = "CORRA NO LUGAR!"; }
-        else if(GAME_MODE === 'race') { hudTitle.innerText = "🏎️ GRAND PRIX"; loadingText.innerText = "MÃOS COMO VOLANTE!"; }
-        else { hudTitle.innerText = "🕺 DANCE MACHINE"; loadingText.innerText = "IMITE O BONECO!"; }
+        let gameSpeed = 0;
+        let playerX = 0; // Posição lateral
+        let previousShoulderY = 0; // Para detecção de pulo/corrida
+
+        // Configuração Inicial por Modo
+        if (GAME_MODE === 'run') {
+            elTitle.innerText = "CORRIDA DE RUA";
+            elInstr.innerText = "Corra no lugar para acelerar!";
+            elLoadText.innerText = "AQUECENDO MOTORES...";
+        } else if (GAME_MODE === 'race') {
+            elTitle.innerText = "GRAND PRIX";
+            elInstr.innerText = "Use as mãos como volante!";
+            elLoadText.innerText = "ALINHANDO NO GRID...";
+        } else {
+            elTitle.innerText = "DANCE MACHINE";
+            elInstr.innerText = "Imite os passos do boneco!";
+            elLoadText.innerText = "LIGANDO O SOM...";
+        }
 
         // =========================================================
-        // 1. THREE.JS (MUNDO 3D)
+        // 1. THREE.JS (CENÁRIO E VISUAL)
         // =========================================================
-        let scene, camera, renderer, model, grid;
-        
+        let scene, camera, renderer, model, floorMesh, floorTexture;
+
         function initThreeJS() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a1a);
-            scene.fog = new THREE.Fog(0x1a1a1a, 10, 60);
-
-            // Iluminação
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
-            hemiLight.position.set(0, 20, 0);
-            scene.add(hemiLight);
-            const dirLight = new THREE.DirectionalLight(0xffcc00, 1.5);
-            dirLight.position.set(3, 10, 10);
-            scene.add(dirLight);
+            
+            // --- AMBIENTE (CÉU E LUZ) ---
+            if (GAME_MODE === 'run') {
+                scene.background = new THREE.Color(0x87CEEB); // Céu Azul
+                scene.fog = new THREE.Fog(0x87CEEB, 10, 50); // Neblina distante
+                addLight(0xffffff, 1.2);
+            } else if (GAME_MODE === 'race') {
+                scene.background = new THREE.Color(0xff8c00); // Pôr do sol
+                scene.fog = new THREE.Fog(0xff8c00, 10, 60);
+                addLight(0xffaa00, 1.5);
+            } else {
+                scene.background = new THREE.Color(0x111111); // Balada escura
+                addDiscoLights();
+            }
 
             // Câmera
-            camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 1.4, 6);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.5, 5); // Atrás/Cima do boneco
 
             // Renderizador
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
 
-            // Chão (Grid Infinito)
-            grid = new THREE.GridHelper(100, 50, 0xff0000, 0x444444);
-            scene.add(grid);
+            // --- CHÃO (A PISTA) ---
+            createFloor();
 
-            // Carrega o Mascote
+            // Carregar Boneco
             const loader = new THREE.GLTFLoader();
-            loader.load(MODEL_URL, 
-                (gltf) => {
+            loader.load(ASSETS.model, (gltf) => {
+                model = gltf.scene;
+                scene.add(model);
+                model.traverse(o => { if(o.isMesh) { o.castShadow = true; } });
+                elLoading.style.display = 'none';
+            }, undefined, (err) => {
+                console.log("Usando fallback...");
+                loader.load(ASSETS.fallback, (gltf) => {
                     model = gltf.scene;
                     scene.add(model);
-                    loadingScreen.style.display = 'none';
-                    if(GAME_MODE === 'race') {
-                        // Se for corrida de carro, levanta um pouco os braços
-                        // (Isso é visual apenas, o rigging vai sobrescrever)
-                    }
-                },
-                undefined,
-                (err) => {
-                    console.warn("Mascote local não achado, usando fallback.");
-                    loader.load(FALLBACK_URL, (gltf) => {
-                        model = gltf.scene;
-                        scene.add(model);
-                        loadingScreen.style.display = 'none';
-                    });
-                }
-            );
+                    elLoading.style.display = 'none';
+                });
+            });
 
             animate();
         }
 
+        function addLight(color, intensity) {
+            const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+            scene.add(hemi);
+            const dir = new THREE.DirectionalLight(color, intensity);
+            dir.position.set(5, 10, 7);
+            dir.castShadow = true;
+            scene.add(dir);
+        }
+
+        function addDiscoLights() {
+            const spot1 = new THREE.SpotLight(0xff0000, 5); spot1.position.set(-5, 10, 0);
+            const spot2 = new THREE.SpotLight(0x0000ff, 5); spot2.position.set(5, 10, 0);
+            scene.add(spot1); scene.add(spot2);
+        }
+
+        function createFloor() {
+            // Se for dança, usamos grid simples
+            if (GAME_MODE === 'dance') {
+                const grid = new THREE.GridHelper(50, 50, 0xff00cc, 0x444444);
+                scene.add(grid);
+                return;
+            }
+
+            // Se for Corrida ou Carro, usamos Textura
+            const texLoader = new THREE.TextureLoader();
+            const texUrl = (GAME_MODE === 'race') ? ASSETS.raceTexture : ASSETS.roadTexture;
+            
+            // Tenta carregar imagem, se não der, usa cor sólida
+            floorTexture = texLoader.load(texUrl, function(texture) {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.repeat.set(4, 20); // Repete a textura para parecer estrada
+            });
+
+            const geometry = new THREE.PlaneGeometry(20, 200);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: 0x999999,
+                map: floorTexture 
+            });
+            
+            floorMesh = new THREE.Mesh(geometry, material);
+            floorMesh.rotation.x = -Math.PI / 2; // Deita o chão
+            floorMesh.receiveShadow = true;
+            scene.add(floorMesh);
+        }
+
         // =========================================================
-        // 2. LÓGICA DO JOGO (GAME LOOP)
+        // 2. GAME LOOP (ANIMAÇÃO)
         // =========================================================
         function animate() {
             requestAnimationFrame(animate);
             
-            // Lógica Específica de Cada Jogo
-            if (GAME_MODE === 'run') {
-                // Efeito de movimento do chão
-                if (speed > 0.1) {
-                    grid.position.z += speed * 0.2;
-                    if (grid.position.z > 2) grid.position.z = 0; // Loop do chão
-                    score += Math.round(speed * 10);
-                    hudSub.innerText = `Distância: ${Math.floor(score/100)}m`;
-                    // Reduz velocidade (inércia)
-                    speed *= 0.95; 
-                }
-            } else if (GAME_MODE === 'race') {
-                // Carro sempre anda pra frente
-                grid.position.z += 0.5;
-                if (grid.position.z > 2) grid.position.z = 0;
+            if (GAME_MODE !== 'dance' && floorTexture) {
+                // Animação da Textura (Chão andando para trás)
+                // Se for corrida a pé, depende da velocidade do jogador
+                // Se for carro, anda constante
+                let currentSpeed = (GAME_MODE === 'race') ? 0.02 : (gameSpeed * 0.02);
                 
-                // Movimento Lateral do Boneco (Carro)
-                if(model) {
-                    model.position.x += (carPositionX - model.position.x) * 0.1; // Suavização
-                    // Inclinação do corpo nas curvas
-                    model.rotation.z = -carPositionX * 0.5; 
-                    model.rotation.y = Math.PI + (carPositionX * 0.5); // Vira um pouco
-                }
-                score += 10;
-                hudSub.innerText = `Score: ${score}`;
+                floorTexture.offset.y -= currentSpeed;
+                
+                // Pontuação baseada no movimento
+                if(currentSpeed > 0.001) score += Math.round(currentSpeed * 100);
             }
 
+            // Movimento lateral do boneco (Carro)
+            if (model && GAME_MODE === 'race') {
+                model.position.x += (playerX - model.position.x) * 0.1; // Suavização
+                model.rotation.y = Math.PI + (model.position.x * 0.2); // Vira o corpo
+                model.rotation.z = -(model.position.x * 0.1); // Inclina
+                score++;
+            }
+
+            // Inércia da Corrida a pé (desacelera se parar de correr)
+            if (GAME_MODE === 'run') {
+                gameSpeed *= 0.95; 
+                if(gameSpeed < 0) gameSpeed = 0;
+            }
+
+            elScore.innerText = score;
             renderer.render(scene, camera);
         }
 
         // =========================================================
-        // 3. VISÃO COMPUTACIONAL & CONTROLE
+        // 3. CAPTURA DE MOVIMENTO
         // =========================================================
         const pose = new Pose({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
         pose.setOptions({modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5});
         pose.onResults(onResults);
 
-        const videoElement = document.getElementById('input_video');
-        const cameraFeed = new Camera(videoElement, {
-            onFrame: async () => { await pose.send({image: videoElement}); },
+        const videoEl = document.getElementById('input_video');
+        const cameraFeed = new Camera(videoEl, {
+            onFrame: async () => { await pose.send({image: videoEl}); },
             width: 640, height: 480
         });
         cameraFeed.start();
 
-        let previousShoulderY = 0; // Para detectar corrida
-
         function onResults(results) {
             if (!model || !results.poseLandmarks) return;
 
-            // --- 1. RIGGING CORPORAL (O boneco sempre mexe o corpo) ---
-            const riggedPose = Kalidokit.Pose.solve(results.poseLandmarks, results.poseWorldLandmarks, {runtime: "mediapipe", video: videoElement});
-            
-            // Aplica movimentos no boneco (Mapeamento padrão)
+            // 1. Aplica movimentos no esqueleto 3D
+            const riggedPose = Kalidokit.Pose.solve(results.poseLandmarks, results.poseWorldLandmarks, {runtime: "mediapipe", video: videoEl});
             applyRig(riggedPose);
 
-            // --- 2. LÓGICA DOS JOGOS ---
+            // 2. Lógica Específica dos Jogos
             
-            // >>> JOGO: CORRIDA DE RUA (Detectar saltitos)
+            // --- CORRIDA A PÉ ---
             if (GAME_MODE === 'run') {
-                // Pega a altura média dos ombros
-                const currentShoulderY = (results.poseLandmarks[11].y + results.poseLandmarks[12].y) / 2;
+                // Detecta movimento vertical dos ombros (Pulo/Corrida)
+                const shoulderY = (results.poseLandmarks[11].y + results.poseLandmarks[12].y) / 2;
+                const delta = Math.abs(shoulderY - previousShoulderY);
                 
-                // Calcula a diferença (o quanto mexeu verticalmente)
-                const movement = Math.abs(currentShoulderY - previousShoulderY);
-                
-                // Se mexeu bastante (está correndo), aumenta velocidade
-                if (movement > 0.005) { 
-                    speed += 0.05; 
-                    if(speed > 1.5) speed = 1.5; // Velocidade máxima
+                if (delta > 0.005) { // Se mexeu o suficiente
+                    gameSpeed += 0.15; 
+                    if(gameSpeed > 2) gameSpeed = 2; // Limite máx
                 }
-                previousShoulderY = currentShoulderY;
+                previousShoulderY = shoulderY;
             }
 
-            // >>> JOGO: GRAND PRIX (Volante Virtual)
+            // --- CORRIDA DE CARRO (VOLANTE) ---
             if (GAME_MODE === 'race') {
-                // Pega altura dos pulsos (Esquerdo: 15, Direito: 16)
-                const leftWristY = results.poseLandmarks[15].y;
-                const rightWristY = results.poseLandmarks[16].y;
+                // Compara altura dos pulsos (Esquerdo vs Direito)
+                const leftY = results.poseLandmarks[15].y;
+                const rightY = results.poseLandmarks[16].y;
                 
-                // Calcula a inclinação (Volante)
-                // Se mão esquerda mais alta (valor menor em Y) -> Vira Direita
-                // Se mão direita mais alta -> Vira Esquerda
-                const steering = rightWristY - leftWristY; 
+                // Diferença determina a direção (-1 a 1)
+                const steering = (rightY - leftY); 
                 
-                // Atualiza posição alvo do carro (-2 a 2 na pista)
-                carPositionX = steering * 5; 
+                // Define posição alvo na pista (-4 a 4)
+                playerX = steering * 6;
             }
         }
 
         function applyRig(riggedPose) {
-            // Função auxiliar para rodar ossos
             const rigRotation = (name, rotation, dampener = 1) => {
                 if (!rotation) return;
                 let bone = model.getObjectByName(name) || model.getObjectByName("mixamorig:" + name) || model.getObjectByName("mixamorig_" + name);
@@ -242,8 +298,8 @@
                     bone.quaternion.slerp(quaternion, 0.5 * dampener);
                 }
             };
-
-            // Aplica em todo o corpo
+            
+            // Aplica em tudo
             rigRotation("Hips", riggedPose.Hips, 0.7);
             rigRotation("Spine", riggedPose.Spine, 1);
             rigRotation("RightArm", riggedPose.RightUpperArm, 1);
@@ -255,10 +311,9 @@
             rigRotation("RightLeg", riggedPose.RightLowerLeg, 1);
             rigRotation("LeftLeg", riggedPose.LeftLowerLeg, 1);
             
-            // Cabeça
-             if(riggedPose.Head) {
-                let head = model.getObjectByName("Head") || model.getObjectByName("mixamorig:Head");
-                if(head) head.rotation.set(-riggedPose.Head.x, -riggedPose.Head.y, -riggedPose.Head.z);
+            if(riggedPose.Head) {
+                 let head = model.getObjectByName("Head") || model.getObjectByName("mixamorig:Head");
+                 if(head) head.rotation.set(-riggedPose.Head.x, -riggedPose.Head.y, -riggedPose.Head.z);
             }
         }
 
