@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>thIAguinho Game Engine</title>
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Câmera Selfie (HUD) */
+        #video-container { position: absolute; top: 10px; right: 10px; width: 100px; height: 133px; z-index: 10; border: 2px solid #fff; border-radius: 10px; overflow: hidden; background: #000; opacity: 0.7; }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+        /* Placar / HUD */
+        #hud { position: absolute; top: 20px; left: 20px; z-index: 10; color: #ffcc00; font-weight: bold; font-size: 24px; text-shadow: 2px 2px 0 #000; font-style: italic; }
+        #sub-hud { font-size: 16px; color: white; }
+
+        /* Loading */
+        #loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #ffcc00; z-index: 100; }
+        .spinner { border: 4px solid #333; border-top: 4px solid #ffcc00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Botão Voltar */
+        .back-btn { position: fixed; bottom: 20px; left: 20px; z-index: 20; background: rgba(255,0,0,0.8); color: white; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px black; }
+        
+        canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1.5/dist/kalidokit.umd.js"></script>
+</head>
+<body>
+
+    <button onclick="window.location.href='index.html'" class="back-btn"><i class='bx bx-home'></i></button>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <h2 id="loading-text">CARREGANDO...</h2>
+    </div>
+
+    <div id="hud">
+        <span id="game-title">MODO LIVRE</span>
+        <div id="sub-hud">Pontos: 0</div>
+    </div>
+    
+    <div id="video-container">
+        <video id="input_video" playsinline></video>
+    </div>
+
+    <script>
+        // =========================================================
+        // 0. DETECÇÃO DO MODO DE JOGO (URL)
+        // =========================================================
+        const params = new URLSearchParams(window.location.search);
+        const GAME_MODE = params.get('mode') || 'dance'; // dance, run, race
+        
+        // Configurações Visuais
+        const MODEL_URL = './assets/mascote.glb';
+        const FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/webxr-academy/assets/models/ybot.glb';
+        
+        // Elementos DOM
+        const hudTitle = document.getElementById('game-title');
+        const hudSub = document.getElementById('sub-hud');
+        const loadingScreen = document.getElementById('loading');
+        const loadingText = document.getElementById('loading-text');
+
+        // Estado do Jogo
+        let score = 0;
+        let speed = 0; // Para corrida
+        let carPositionX = 0; // Para corrida de carro
+        
+        // Atualiza Títulos
+        if(GAME_MODE === 'run') { hudTitle.innerText = "🏃 CORRIDA DE RUA"; loadingText.innerText = "CORRA NO LUGAR!"; }
+        else if(GAME_MODE === 'race') { hudTitle.innerText = "🏎️ GRAND PRIX"; loadingText.innerText = "MÃOS COMO VOLANTE!"; }
+        else { hudTitle.innerText = "🕺 DANCE MACHINE"; loadingText.innerText = "IMITE O BONECO!"; }
+
+        // =========================================================
+        // 1. THREE.JS (MUNDO 3D)
+        // =========================================================
+        let scene, camera, renderer, model, grid;
+        
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a1a);
+            scene.fog = new THREE.Fog(0x1a1a1a, 10, 60);
+
+            // Iluminação
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+            hemiLight.position.set(0, 20, 0);
+            scene.add(hemiLight);
+            const dirLight = new THREE.DirectionalLight(0xffcc00, 1.5);
+            dirLight.position.set(3, 10, 10);
+            scene.add(dirLight);
+
+            // Câmera
+            camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.4, 6);
+
+            // Renderizador
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            document.body.appendChild(renderer.domElement);
+
+            // Chão (Grid Infinito)
+            grid = new THREE.GridHelper(100, 50, 0xff0000, 0x444444);
+            scene.add(grid);
+
+            // Carrega o Mascote
+            const loader = new THREE.GLTFLoader();
+            loader.load(MODEL_URL, 
+                (gltf) => {
+                    model = gltf.scene;
+                    scene.add(model);
+                    loadingScreen.style.display = 'none';
+                    if(GAME_MODE === 'race') {
+                        // Se for corrida de carro, levanta um pouco os braços
+                        // (Isso é visual apenas, o rigging vai sobrescrever)
+                    }
+                },
+                undefined,
+                (err) => {
+                    console.warn("Mascote local não achado, usando fallback.");
+                    loader.load(FALLBACK_URL, (gltf) => {
+                        model = gltf.scene;
+                        scene.add(model);
+                        loadingScreen.style.display = 'none';
+                    });
+                }
+            );
+
+            animate();
+        }
+
+        // =========================================================
+        // 2. LÓGICA DO JOGO (GAME LOOP)
+        // =========================================================
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Lógica Específica de Cada Jogo
+            if (GAME_MODE === 'run') {
+                // Efeito de movimento do chão
+                if (speed > 0.1) {
+                    grid.position.z += speed * 0.2;
+                    if (grid.position.z > 2) grid.position.z = 0; // Loop do chão
+                    score += Math.round(speed * 10);
+                    hudSub.innerText = `Distância: ${Math.floor(score/100)}m`;
+                    // Reduz velocidade (inércia)
+                    speed *= 0.95; 
+                }
+            } else if (GAME_MODE === 'race') {
+                // Carro sempre anda pra frente
+                grid.position.z += 0.5;
+                if (grid.position.z > 2) grid.position.z = 0;
+                
+                // Movimento Lateral do Boneco (Carro)
+                if(model) {
+                    model.position.x += (carPositionX - model.position.x) * 0.1; // Suavização
+                    // Inclinação do corpo nas curvas
+                    model.rotation.z = -carPositionX * 0.5; 
+                    model.rotation.y = Math.PI + (carPositionX * 0.5); // Vira um pouco
+                }
+                score += 10;
+                hudSub.innerText = `Score: ${score}`;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // =========================================================
+        // 3. VISÃO COMPUTACIONAL & CONTROLE
+        // =========================================================
+        const pose = new Pose({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`});
+        pose.setOptions({modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5});
+        pose.onResults(onResults);
+
+        const videoElement = document.getElementById('input_video');
+        const cameraFeed = new Camera(videoElement, {
+            onFrame: async () => { await pose.send({image: videoElement}); },
+            width: 640, height: 480
+        });
+        cameraFeed.start();
+
+        let previousShoulderY = 0; // Para detectar corrida
+
+        function onResults(results) {
+            if (!model || !results.poseLandmarks) return;
+
+            // --- 1. RIGGING CORPORAL (O boneco sempre mexe o corpo) ---
+            const riggedPose = Kalidokit.Pose.solve(results.poseLandmarks, results.poseWorldLandmarks, {runtime: "mediapipe", video: videoElement});
+            
+            // Aplica movimentos no boneco (Mapeamento padrão)
+            applyRig(riggedPose);
+
+            // --- 2. LÓGICA DOS JOGOS ---
+            
+            // >>> JOGO: CORRIDA DE RUA (Detectar saltitos)
+            if (GAME_MODE === 'run') {
+                // Pega a altura média dos ombros
+                const currentShoulderY = (results.poseLandmarks[11].y + results.poseLandmarks[12].y) / 2;
+                
+                // Calcula a diferença (o quanto mexeu verticalmente)
+                const movement = Math.abs(currentShoulderY - previousShoulderY);
+                
+                // Se mexeu bastante (está correndo), aumenta velocidade
+                if (movement > 0.005) { 
+                    speed += 0.05; 
+                    if(speed > 1.5) speed = 1.5; // Velocidade máxima
+                }
+                previousShoulderY = currentShoulderY;
+            }
+
+            // >>> JOGO: GRAND PRIX (Volante Virtual)
+            if (GAME_MODE === 'race') {
+                // Pega altura dos pulsos (Esquerdo: 15, Direito: 16)
+                const leftWristY = results.poseLandmarks[15].y;
+                const rightWristY = results.poseLandmarks[16].y;
+                
+                // Calcula a inclinação (Volante)
+                // Se mão esquerda mais alta (valor menor em Y) -> Vira Direita
+                // Se mão direita mais alta -> Vira Esquerda
+                const steering = rightWristY - leftWristY; 
+                
+                // Atualiza posição alvo do carro (-2 a 2 na pista)
+                carPositionX = steering * 5; 
+            }
+        }
+
+        function applyRig(riggedPose) {
+            // Função auxiliar para rodar ossos
+            const rigRotation = (name, rotation, dampener = 1) => {
+                if (!rotation) return;
+                let bone = model.getObjectByName(name) || model.getObjectByName("mixamorig:" + name) || model.getObjectByName("mixamorig_" + name);
+                if (bone) {
+                    let euler = new THREE.Euler(rotation.x, rotation.y, rotation.z);
+                    let quaternion = new THREE.Quaternion().setFromEuler(euler);
+                    bone.quaternion.slerp(quaternion, 0.5 * dampener);
+                }
+            };
+
+            // Aplica em todo o corpo
+            rigRotation("Hips", riggedPose.Hips, 0.7);
+            rigRotation("Spine", riggedPose.Spine, 1);
+            rigRotation("RightArm", riggedPose.RightUpperArm, 1);
+            rigRotation("LeftArm", riggedPose.LeftUpperArm, 1);
+            rigRotation("RightForeArm", riggedPose.RightLowerArm, 1);
+            rigRotation("LeftForeArm", riggedPose.LeftLowerArm, 1);
+            rigRotation("RightUpLeg", riggedPose.RightUpperLeg, 1);
+            rigRotation("LeftUpLeg", riggedPose.LeftUpperLeg, 1);
+            rigRotation("RightLeg", riggedPose.RightLowerLeg, 1);
+            rigRotation("LeftLeg", riggedPose.LeftLowerLeg, 1);
+            
+            // Cabeça
+             if(riggedPose.Head) {
+                let head = model.getObjectByName("Head") || model.getObjectByName("mixamorig:Head");
+                if(head) head.rotation.set(-riggedPose.Head.x, -riggedPose.Head.y, -riggedPose.Head.z);
+            }
+        }
+
+        initThreeJS();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
