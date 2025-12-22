@@ -1,20 +1,33 @@
-// js/app.js - Arquivo de Registro do PWA
+/**
+ * thIAguinho Arcade - App Logic
+ */
 
-// Verifica se o navegador suporta Service Workers
+// Registro do Service Worker para PWA
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // Tenta registrar o arquivo sw.js que está na raiz
         navigator.serviceWorker.register('./sw.js')
-            .then((registration) => {
-                console.log('Service Worker registrado com sucesso com escopo:', registration.scope);
-            })
-            .catch((error) => {
-                console.log('Falha ao registrar o Service Worker:', error);
-            });
+            .then(reg => console.log('SW registrado!', reg))
+            .catch(err => console.error('Erro SW:', err));
     });
 }
 
-// Log para debug
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("Sistema thIAguinho Arcade inicializado.");
-});
+// Gestão de Recordes Locais
+const ArcadeScore = {
+    init: function() {
+        const modes = ['dance', 'run', 'race'];
+        modes.forEach(mode => {
+            const val = localStorage.getItem(`th_score_${mode}`) || 0;
+            const el = document.getElementById(`score-${mode}`);
+            if (el) el.innerText = `Recorde: ${val}`;
+        });
+    },
+    save: function(mode, score) {
+        const best = localStorage.getItem(`th_score_${mode}`) || 0;
+        if (score > best) {
+            localStorage.setItem(`th_score_${mode}`, score);
+            this.init();
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => ArcadeScore.init());
