@@ -6,28 +6,33 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW registrado!', reg))
-            .catch(err => console.error('Erro SW:', err));
+            .then(reg => console.log('Arcade: Service Worker pronto!', reg))
+            .catch(err => console.log('Arcade: Falha no SW', err));
     });
 }
 
-// Gestão de Recordes Locais
 const ArcadeScore = {
+    // Inicializa a exibição dos recordes no menu
     init: function() {
-        const modes = ['dance', 'run', 'race'];
-        modes.forEach(mode => {
-            const val = localStorage.getItem(`th_score_${mode}`) || 0;
-            const el = document.getElementById(`score-${mode}`);
-            if (el) el.innerText = `Recorde: ${val}`;
+        ['dance', 'run', 'race'].forEach(mode => {
+            const saved = localStorage.getItem(`th_score_${mode}`) || 0;
+            const element = document.getElementById(`score-${mode}`);
+            if (element) {
+                element.innerText = `Recorde: ${saved}`;
+            }
         });
     },
+    // Função para salvar novo recorde manualmente se necessário
     save: function(mode, score) {
         const best = localStorage.getItem(`th_score_${mode}`) || 0;
-        if (score > best) {
+        if (parseInt(score) > parseInt(best)) {
             localStorage.setItem(`th_score_${mode}`, score);
             this.init();
         }
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => ArcadeScore.init());
+// Carrega os recordes assim que o menu abrir
+document.addEventListener('DOMContentLoaded', () => {
+    ArcadeScore.init();
+});
