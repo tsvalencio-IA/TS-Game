@@ -15,6 +15,7 @@
         }
         .arcade-btn:active { transform: translateY(4px); border-bottom: 0px; }
         .neon-text { text-shadow: 0 0 10px #ffcc00, 0 0 20px #ffcc00; }
+        .best-score { font-size: 0.7rem; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 20px; margin-top: 5px; display: inline-block; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-black">
@@ -36,7 +37,7 @@
                     <i class='bx bxs-music text-9xl'></i>
                 </div>
                 <h2 class="text-2xl font-bold uppercase italic">🕺 Máquina de Dança</h2>
-                <p class="text-purple-200 text-xs mt-1">Imite os movimentos e solte a fera!</p>
+                <div id="score-dance" class="best-score">Recorde: 0</div>
             </a>
 
             <a href="jogos.html?mode=run" class="arcade-btn block bg-green-600 hover:bg-green-500 text-white rounded-xl p-6 relative overflow-hidden group">
@@ -44,7 +45,7 @@
                     <i class='bx bx-run text-9xl'></i>
                 </div>
                 <h2 class="text-2xl font-bold uppercase italic">🏃 Corrida de Rua</h2>
-                <p class="text-green-200 text-xs mt-1">Corra no lugar para avançar!</p>
+                <div id="score-run" class="best-score">Recorde: 0</div>
             </a>
 
             <a href="jogos.html?mode=race" class="arcade-btn block bg-red-600 hover:bg-red-500 text-white rounded-xl p-6 relative overflow-hidden group">
@@ -52,7 +53,7 @@
                     <i class='bx bxs-car text-9xl'></i>
                 </div>
                 <h2 class="text-2xl font-bold uppercase italic">🏎️ Grand Prix</h2>
-                <p class="text-red-200 text-xs mt-1">Use os braços como volante!</p>
+                <div id="score-race" class="best-score">Recorde: 0</div>
             </a>
 
         </div>
