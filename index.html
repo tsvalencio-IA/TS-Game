@@ -2,67 +2,115 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>thIAguinho Arcade</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TS-Game | thIAguinho Animado</title>
+    
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#c92a2a">
-    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <meta name="theme-color" content="#FFCC00">
+
     <style>
-        body { background-color: #111; color: white; font-family: 'Segoe UI', sans-serif; }
-        .arcade-btn { 
-            transition: all 0.3s; border-bottom: 4px solid #b91c1c; 
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Painel de Controle do Jogo */
+        #game-ui {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 100;
         }
-        .arcade-btn:active { transform: translateY(4px); border-bottom: 0px; }
-        .neon-text { text-shadow: 0 0 10px #ffcc00, 0 0 20px #ffcc00; }
-        .best-score { font-size: 0.75rem; color: #ffcc00; font-weight: bold; background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 20px; margin-top: 8px; display: inline-block; border: 1px solid rgba(255,204,0,0.3); }
+
+        .control-btn {
+            background: #ffcc00;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #b38f00;
+            cursor: pointer;
+            min-width: 80px;
+        }
+
+        .control-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #ffcc00;
+        }
     </style>
 </head>
-<body class="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-black">
-    
-    <div class="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-screen">
-        
-        <div class="text-center mb-8">
-            <div class="w-24 h-24 mx-auto rounded-full border-4 border-yellow-400 overflow-hidden mb-4 shadow-xl">
-                <img src="assets/mascote_perfil.jpg" alt="thIAguinho" class="w-full h-full object-cover">
-            </div>
-            <h1 class="text-4xl font-black text-yellow-400 italic neon-text">ARCADE thIAguinho</h1>
-            <p class="text-gray-400 text-sm mt-2">Escolha seu desafio!</p>
-        </div>
+<body>
 
-        <div class="w-full max-w-sm space-y-4">
-            
-            <a href="jogos.html?mode=dance" class="arcade-btn block bg-purple-600 hover:bg-purple-500 text-white rounded-xl p-6 relative overflow-hidden group">
-                <div class="absolute right-[-20px] top-[-20px] opacity-20 group-hover:scale-110 transition">
-                    <i class='bx bxs-music text-9xl'></i>
-                </div>
-                <h2 class="text-2xl font-bold uppercase italic">🕺 Máquina de Dança</h2>
-                <div id="score-dance" class="best-score">Recorde: 0</div>
-            </a>
-
-            <a href="jogos.html?mode=run" class="arcade-btn block bg-green-600 hover:bg-green-500 text-white rounded-xl p-6 relative overflow-hidden group">
-                <div class="absolute right-[-20px] top-[-20px] opacity-20 group-hover:scale-110 transition">
-                    <i class='bx bx-run text-9xl'></i>
-                </div>
-                <h2 class="text-2xl font-bold uppercase italic">🏃 Corrida de Rua</h2>
-                <div id="score-run" class="best-score">Recorde: 0</div>
-            </a>
-
-            <a href="jogos.html?mode=race" class="arcade-btn block bg-red-600 hover:bg-red-500 text-white rounded-xl p-6 relative overflow-hidden group">
-                <div class="absolute right-[-20px] top-[-20px] opacity-20 group-hover:scale-110 transition">
-                    <i class='bx bxs-car text-9xl'></i>
-                </div>
-                <h2 class="text-2xl font-bold uppercase italic">🏎️ Grand Prix</h2>
-                <div id="score-race" class="best-score">Recorde: 0</div>
-            </a>
-
-        </div>
-
-        <p class="mt-8 text-xs text-gray-500 text-center">
-            Necessário câmera frontal.<br>Afaste-se para jogar.
-        </p>
+    <div id="loading-overlay">
+        <h2>TS-GAME</h2>
+        <p>DANDO VIDA AO THIAGUINHO...</p>
     </div>
 
-    <script src="js/app.js"></script>
+    <div id="game-ui">
+        <button class="control-btn" onclick="playAnim('idle')">PARADO</button>
+        <button class="control-btn" onclick="playAnim('walk')">ANDAR</button>
+        <button class="control-btn" onclick="playAnim('run')">CORRER</button>
+    </div>
+
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        renderer="antialias: true; colorManagement: true;"
+        vr-mode-ui="enabled: false">
+        
+        <a-assets>
+            <a-asset-item id="th-animado" src="assets/models/thiaguinho_animado.glb"></a-asset-item>
+        </a-assets>
+
+        <a-marker preset="hiro">
+            <a-entity 
+                id="thiaguinho"
+                gltf-model="#th-animado"
+                scale="1 1 1"
+                position="0 0 0"
+                animation-mixer="clip: idle; loop: repeat">
+            </a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        // Função para trocar a animação do thIAguinho
+        function playAnim(nome) {
+            const boneco = document.querySelector('#thiaguinho');
+            // O nome do 'clip' deve ser igual ao nome da animação no Mixamo
+            boneco.setAttribute('animation-mixer', `clip: ${nome}; crossFadeDuration: 0.4`);
+            console.log("Mudando para: " + nome);
+        }
+
+        // Esconder loading
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading-overlay').style.display = 'none';
+            }, 2500);
+        });
+
+        // Registrar PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 </html>
