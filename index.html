@@ -1,20 +1,76 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Motion Party Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>thIAguinho Arcade | Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    
+    <style>
+        body { 
+            background-color: #050505; 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            background-image: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        }
+        .neon-text { 
+            text-shadow: 0 0 5px #ffcc00, 0 0 15px #ffcc00; 
+        }
+        .card-btn {
+            transition: transform 0.2s, filter 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
 </head>
+<body class="flex flex-col min-h-screen">
+    
+    <div class="container mx-auto px-6 py-10 flex flex-col items-center justify-center flex-grow">
+        
+        <div class="text-center mb-12">
+            <div class="relative w-32 h-32 mx-auto mb-6">
+                <div class="absolute inset-0 rounded-full border-4 border-yellow-400 animate-pulse"></div>
+                <img src="./assets/mascote_perfil.jpg" alt="thIAguinho" class="w-full h-full object-cover rounded-full border-4 border-transparent">
+            </div>
+            <h1 class="text-5xl font-black text-yellow-400 italic tracking-tighter neon-text">ARCADE<br><span class="text-white text-3xl not-italic">thIAguinho</span></h1>
+            <p class="mt-4 text-gray-400 text-sm">Realidade Aumentada Experience</p>
+        </div>
 
-<body>
+        <div class="w-full max-w-md space-y-6">
+            
+            <a href="jogos.html?mode=ar" class="card-btn block bg-gradient-to-r from-yellow-600 to-yellow-500 p-1 rounded-2xl">
+                <div class="bg-gray-900 rounded-xl p-6 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-yellow-400 uppercase italic">🏎️ Turbo AR</h2>
+                        <p class="text-xs text-gray-400 mt-1">Use a câmera e incline para jogar</p>
+                    </div>
+                    <i class='bx bx-play-circle text-4xl text-white'></i>
+                </div>
+            </a>
 
-<div id="home">
-  <h1>🎮 Motion Party Game</h1>
-  <p>Use o corpo para jogar</p>
-  <button onclick="location.href='jogos.html'">JOGAR</button>
-</div>
+            <div class="opacity-50 pointer-events-none">
+                <div class="card-btn block bg-gray-800 p-1 rounded-2xl">
+                    <div class="bg-gray-900 rounded-xl p-6 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-500 uppercase italic">💃 Dance (Em breve)</h2>
+                            <p class="text-xs text-gray-600 mt-1">Modo IA Full Body</p>
+                        </div>
+                        <i class='bx bx-lock-alt text-4xl text-gray-600'></i>
+                    </div>
+                </div>
+            </div>
 
+        </div>
+    </div>
+
+    <footer class="p-6 text-center text-gray-600 text-xs">
+        <p>Desenvolvido com <i class='bx bxs-heart text-red-600'></i> por thIAguinho Soluções</p>
+        <p class="mt-1">v2.5.0 Stable AR</p>
+    </footer>
+
+    <script src="./js/app.js"></script>
 </body>
 </html>
