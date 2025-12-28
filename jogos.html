@@ -1,22 +1,428 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Escolha o Jogo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>thIAguinho AR | Engine V1</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    
+    <style>
+        /* --- CORE ENGINE STYLES --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; position: fixed; width: 100%; height: 100%; }
+
+        /* LAYER 1: CÂMERA (BACKGROUND AR) */
+        #cam-feed {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            transform: scaleX(-1); /* Espelhamento para sensação natural */
+            filter: brightness(0.8); /* Destaque para o 3D */
+        }
+
+        /* LAYER 2: GAMEPLAY (THREE.JS) */
+        #game-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 2;
+            outline: none;
+        }
+
+        /* LAYER 3: UI / HUD */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Deixa passar o toque para o jogo */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* HUD ELEMENTS */
+        .hud-top {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
+        
+        .score-box {
+            text-align: right;
+            color: #ffcc00;
+        }
+        .score-label { font-size: 12px; font-weight: bold; letter-spacing: 1px; color: #fff; }
+        .score-val { font-size: 32px; font-weight: 900; font-family: monospace; text-shadow: 0 0 10px rgba(255, 204, 0, 0.5); }
+
+        .btn-back {
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: auto; /* Botão clicável */
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* INSTRUÇÕES / START SCREEN */
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .start-btn {
+            background: #ffcc00;
+            color: #000;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 20px;
+            font-weight: 900;
+            border: none;
+            margin-top: 20px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* FEEDBACK VISUAL DE TOQUE */
+        .touch-zone {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 30%;
+            background: linear-gradient(to top, rgba(0,255,0,0.1), transparent);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        #debug-info {
+            position: absolute;
+            bottom: 10px; left: 10px;
+            font-size: 10px; color: lime;
+            font-family: monospace;
+            z-index: 100;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/DRACOLoader.js"></script>
 </head>
+<body>
 
-<body style="background:#000;color:#fff;text-align:center;font-family:Arial">
+    <video id="cam-feed" autoplay playsinline muted></video>
 
-<h1>Escolha o modo</h1>
+    <div id="ui-layer">
+        <div class="hud-top">
+            <button onclick="window.location.href='index.html'" class="btn-back"><i class='bx bx-arrow-back'></i></button>
+            <div class="score-box">
+                <div class="score-label">DISTÂNCIA</div>
+                <div class="score-val" id="score-display">0000</div>
+            </div>
+        </div>
+        <div class="touch-zone">
+            Toque repetidamente para acelerar!
+        </div>
+    </div>
 
-<button onclick="startMode('race')">🏁 Corrida</button><br><br>
-<button onclick="startMode('fitness')">💪 Fitness</button><br><br>
-<button onclick="startMode('party')">🎉 Party</button>
+    <div id="start-screen">
+        <h1 style="font-size: 40px; color: #ffcc00; font-style: italic;">thIAguinho AR</h1>
+        <p style="margin: 10px 0; font-size: 14px; max-width: 80%;">
+            <i class='bx bx-mobile-vibration'></i> Incline para desviar<br>
+            <i class='bx bxs-hand-up'></i> Toque para acelerar
+        </p>
+        <button class="start-btn" onclick="startGame()">JOGAR AGORA</button>
+        <p style="margin-top: 15px; font-size: 10px; color: #aaa;">Permita o uso da câmera</p>
+    </div>
 
-<video id="camera" autoplay playsinline style="display:none"></video>
-<canvas id="gameCanvas" width="360" height="640" style="display:none"></canvas>
+    <div id="debug-info">Aguardando...</div>
 
-<script src="js/app.js"></script>
+    <script>
+        /**
+         * thIAguinho AR Engine - Core V1
+         * Foco: Gameplay Sólido, AR Passivo, Controles Responsivos.
+         */
+
+        // ESTADO DO JOGO
+        const GameState = {
+            scene: null,
+            camera: null,
+            renderer: null,
+            mascot: null,
+            floor: null,
+            isPlaying: false,
+            score: 0,
+            speed: 0,
+            laneX: 0, // Posição lateral alvo (-1, 0, 1 mapeado para world X)
+            maxSpeed: 0.8,
+            friction: 0.98
+        };
+
+        const Assets = {
+            mascotUrl: './assets/mascote.glb',
+            floorTexture: './assets/estrada.jpg' // Usando textura de estrada padrão
+        };
+
+        // --- INICIALIZAÇÃO ---
+        async function startGame() {
+            // 1. Pedir permissão de câmera e sensores
+            try {
+                await initCamera();
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    await DeviceOrientationEvent.requestPermission();
+                }
+            } catch (e) {
+                console.warn("Permissões limitadas ou ambiente desktop", e);
+            }
+
+            document.getElementById('start-screen').style.display = 'none';
+            GameState.isPlaying = true;
+            
+            // Iniciar Audio se tiver (Opcional)
+        }
+
+        async function initCamera() {
+            const video = document.getElementById('cam-feed');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, // Tenta câmera traseira para AR
+                    audio: false 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                // Se falhar a traseira ou não tiver permissão, tenta frontal ou ignora
+                console.error("Erro Câmera:", err);
+                const streamFallback = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = streamFallback;
+            }
+        }
+
+        // --- ENGINE THREE.JS ---
+        function init3D() {
+            const container = document.body;
+
+            // SCENE
+            GameState.scene = new THREE.Scene();
+            // Sem background color, para ver o vídeo atrás
+            
+            // LIGHTS
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+            GameState.scene.add(hemiLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            GameState.scene.add(dirLight);
+
+            // CAMERA
+            GameState.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            GameState.camera.position.set(0, 3, 6); // Posição de "seguidor"
+            GameState.camera.lookAt(0, 0, -5);
+
+            // RENDERER
+            GameState.renderer = new THREE.WebGLRenderer({ 
+                alpha: true, // ESSENCIAL PARA AR: Fundo transparente
+                antialias: true 
+            });
+            GameState.renderer.setSize(window.innerWidth, window.innerHeight);
+            GameState.renderer.domElement.id = 'game-canvas';
+            container.appendChild(GameState.renderer.domElement);
+
+            // WORLD OBJECTS
+            createFloor();
+            loadMascot();
+
+            // EVENT LISTENERS
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('deviceorientation', handleTilt);
+            window.addEventListener('touchstart', handleTap);
+            window.addEventListener('keydown', handleKeys); // Debug PC
+
+            // START LOOP
+            animate();
+        }
+
+        function createFloor() {
+            const textureLoader = new THREE.TextureLoader();
+            // Fallback: GridHelper se não tiver textura
+            const grid = new THREE.GridHelper(100, 100, 0xff0000, 0xffffff);
+            grid.position.y = -0.01;
+            // GameState.scene.add(grid); // Comentei para usar o estilo "estrada"
+
+            textureLoader.load(Assets.floorTexture, function(texture) {
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.repeat.set(1, 10);
+                
+                const geometry = new THREE.PlaneGeometry(8, 100);
+                const material = new THREE.MeshBasicMaterial({ 
+                    map: texture,
+                    transparent: true,
+                    opacity: 0.8 // Leve transparência para misturar com câmera
+                });
+                
+                GameState.floor = new THREE.Mesh(geometry, material);
+                GameState.floor.rotation.x = -Math.PI / 2;
+                GameState.floor.position.z = -40; // Estende para frente
+                GameState.scene.add(GameState.floor);
+            }, undefined, function(err) {
+                // Se der erro na textura, adiciona o grid
+                GameState.scene.add(grid);
+            });
+        }
+
+        function loadMascot() {
+            const loader = new THREE.GLTFLoader();
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
+            loader.setDRACOLoader(dracoLoader);
+
+            loader.load(Assets.mascotUrl, (gltf) => {
+                GameState.mascot = gltf.scene;
+                
+                // Ajustes do Modelo
+                GameState.mascot.traverse((o) => {
+                    if(o.isMesh) {
+                        o.castShadow = true;
+                        // Fallback Material
+                        if(!o.material.map) o.material.color.setHex(0xFFD700);
+                    }
+                });
+
+                // Normalização de Escala e Posição
+                const box = new THREE.Box3().setFromObject(GameState.mascot);
+                const size = box.getSize(new THREE.Vector3());
+                const scale = 1.5 / size.y; // 1.5 metros de altura virtual
+                GameState.mascot.scale.setScalar(scale);
+
+                GameState.mascot.position.set(0, 0, -2); // Posição inicial
+                
+                // Animação Simples (Idle/Run) se houver clips
+                // (Implementação futura de Mixer)
+
+                GameState.scene.add(GameState.mascot);
+
+            }, undefined, (err) => {
+                console.error("Erro loading mascot, usando cubo debug");
+                const geom = new THREE.BoxGeometry(1, 1, 1);
+                const mat = new THREE.MeshNormalMaterial();
+                GameState.mascot = new THREE.Mesh(geom, mat);
+                GameState.mascot.position.set(0, 0.5, -2);
+                GameState.scene.add(GameState.mascot);
+            });
+        }
+
+        // --- CONTROLES ---
+        function handleTilt(event) {
+            // Gamma é a inclinação esquerda/direita (-90 a 90)
+            const tilt = event.gamma; 
+            if (tilt) {
+                // Suaviza e mapeia para limites da pista (-3 a 3)
+                let targetX = tilt * 0.1;
+                targetX = Math.max(-3, Math.min(3, targetX));
+                GameState.laneX = targetX;
+                
+                document.getElementById('debug-info').innerText = `Tilt: ${Math.round(tilt)} | X: ${targetX.toFixed(2)}`;
+            }
+        }
+
+        function handleTap() {
+            if(!GameState.isPlaying) return;
+            // Tap dá um boost de velocidade
+            GameState.speed += 0.05;
+            if(GameState.speed > GameState.maxSpeed) GameState.speed = GameState.maxSpeed;
+        }
+
+        function handleKeys(e) {
+            if(e.key === 'ArrowLeft') GameState.laneX -= 1;
+            if(e.key === 'ArrowRight') GameState.laneX += 1;
+            if(e.key === ' ') handleTap();
+            
+            // Clamp no PC
+            GameState.laneX = Math.max(-3, Math.min(3, GameState.laneX));
+        }
+
+        // --- GAME LOOP ---
+        function update() {
+            if (!GameState.isPlaying) return;
+
+            // 1. Aplica Velocidade e Atrito
+            GameState.speed *= GameState.friction;
+            if(GameState.speed < 0.0) GameState.speed = 0;
+
+            // 2. Pontuação baseada na velocidade
+            GameState.score += Math.round(GameState.speed * 10);
+            document.getElementById('score-display').innerText = GameState.score;
+
+            // 3. Move Mascote (Lerp para suavidade)
+            if (GameState.mascot) {
+                // Interpolação Linear para movimento lateral suave
+                GameState.mascot.position.x += (GameState.laneX - GameState.mascot.position.x) * 0.1;
+                
+                // Efeito de "Corrida" (Pulo suave no Y)
+                if(GameState.speed > 0.1) {
+                    GameState.mascot.position.y = Math.abs(Math.sin(Date.now() * 0.01)) * 0.1;
+                    // Inclinação do corpo nas curvas
+                    GameState.mascot.rotation.z = -GameState.mascot.position.x * 0.1; 
+                }
+            }
+
+            // 4. Move Pista (Ilusão de Movimento Infinito)
+            if (GameState.floor && GameState.floor.material.map) {
+                // O offset Y da textura cria a ilusão de ir para frente
+                GameState.floor.material.map.offset.y -= GameState.speed * 0.1;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            update();
+            if (GameState.renderer && GameState.scene && GameState.camera) {
+                GameState.renderer.render(GameState.scene, GameState.camera);
+            }
+        }
+
+        function onWindowResize() {
+            if(GameState.camera && GameState.renderer) {
+                GameState.camera.aspect = window.innerWidth / window.innerHeight;
+                GameState.camera.updateProjectionMatrix();
+                GameState.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // Boot
+        window.onload = init3D;
+
+    </script>
 </body>
 </html>
