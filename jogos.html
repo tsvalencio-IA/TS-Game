@@ -3,134 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>thIAguinho AR | Engine V1</title>
+    <title>thIAguinho AR | Jogo Completo</title>
     
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     
     <style>
-        /* --- CORE ENGINE STYLES --- */
+        /* --- ESTILOS DE ALTA PERFORMANCE (GAME UI) --- */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { overflow: hidden; background-color: #000; font-family: 'Segoe UI', sans-serif; position: fixed; width: 100%; height: 100%; }
 
-        /* LAYER 1: CÂMERA (BACKGROUND AR) */
+        /* LAYER 1: CÂMERA (AR BACKGROUND) */
         #cam-feed {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            object-fit: cover;
-            z-index: 1;
-            transform: scaleX(-1); /* Espelhamento para sensação natural */
-            filter: brightness(0.8); /* Destaque para o 3D */
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: 1; transform: scaleX(-1); filter: brightness(0.7);
         }
 
-        /* LAYER 2: GAMEPLAY (THREE.JS) */
-        #game-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 2;
-            outline: none;
-        }
+        /* LAYER 2: 3D WORLD */
+        #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; }
 
-        /* LAYER 3: UI / HUD */
+        /* LAYER 3: HUD (Interface de Jogo) */
         #ui-layer {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 10;
-            pointer-events: none; /* Deixa passar o toque para o jogo */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
         }
 
-        /* HUD ELEMENTS */
-        .hud-top {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        .hud-header {
+            padding: 15px 20px; display: flex; justify-content: space-between; align-items: flex-start;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
         }
-        
-        .score-box {
-            text-align: right;
-            color: #ffcc00;
-        }
-        .score-label { font-size: 12px; font-weight: bold; letter-spacing: 1px; color: #fff; }
-        .score-val { font-size: 32px; font-weight: 900; font-family: monospace; text-shadow: 0 0 10px rgba(255, 204, 0, 0.5); }
 
-        .btn-back {
-            background: rgba(255, 0, 0, 0.8);
-            color: white;
-            border: none;
-            width: 45px; height: 45px;
-            border-radius: 50%;
-            font-size: 24px;
+        .score-container { text-align: right; color: #ffcc00; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .label { font-size: 10px; font-weight: bold; letter-spacing: 1px; color: #fff; text-transform: uppercase; }
+        .big-number { font-size: 32px; font-weight: 900; font-family: monospace; line-height: 1; }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255,255,255,0.3);
+            width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
             display: flex; align-items: center; justify-content: center;
-            pointer-events: auto; /* Botão clicável */
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            pointer-events: auto; cursor: pointer; backdrop-filter: blur(4px);
         }
 
-        /* INSTRUÇÕES / START SCREEN */
-        #start-screen {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 20;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-align: center;
-            backdrop-filter: blur(5px);
+        /* TELAS DE ESTADO (Start / Game Over) */
+        .overlay-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 20;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center; backdrop-filter: blur(8px);
+            transition: opacity 0.3s;
         }
+
+        .hidden { display: none !important; opacity: 0; }
+
+        h1 { font-size: 36px; color: #ffcc00; font-style: italic; margin-bottom: 10px; text-transform: uppercase; }
+        h2 { font-size: 24px; color: #fff; margin-bottom: 20px; }
         
-        .start-btn {
-            background: #ffcc00;
-            color: #000;
-            padding: 15px 40px;
-            border-radius: 30px;
-            font-size: 20px;
-            font-weight: 900;
-            border: none;
-            margin-top: 20px;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 0 0 20px rgba(255, 204, 0, 0.4);
-            animation: pulse 1.5s infinite;
+        .action-btn {
+            background: linear-gradient(45deg, #ffcc00, #ffaa00); color: #000;
+            padding: 15px 50px; border-radius: 50px; font-size: 18px; font-weight: 900;
+            border: none; cursor: pointer; text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+            animation: pulse 1.5s infinite; pointer-events: auto;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        
+        /* EFEITO DE DANO */
+        #damage-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: red; opacity: 0; z-index: 5; pointer-events: none;
+            transition: opacity 0.1s;
         }
 
-        /* FEEDBACK VISUAL DE TOQUE */
-        .touch-zone {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 30%;
-            background: linear-gradient(to top, rgba(0,255,0,0.1), transparent);
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 20px;
-            color: rgba(255,255,255,0.5);
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        #debug-info {
-            position: absolute;
-            bottom: 10px; left: 10px;
-            font-size: 10px; color: lime;
-            font-family: monospace;
-            z-index: 100;
+        /* ZONA DE TOQUE */
+        .tap-zone {
+            position: absolute; bottom: 0; width: 100%; height: 40%;
+            background: linear-gradient(to top, rgba(255,204,0,0.1), transparent);
+            display: flex; justify-content: center; align-items: flex-end; padding-bottom: 30px;
+            font-size: 12px; color: rgba(255,255,255,0.6); pointer-events: auto;
         }
     </style>
 
@@ -141,287 +90,333 @@
 <body>
 
     <video id="cam-feed" autoplay playsinline muted></video>
+    
+    <div id="damage-overlay"></div>
 
     <div id="ui-layer">
-        <div class="hud-top">
-            <button onclick="window.location.href='index.html'" class="btn-back"><i class='bx bx-arrow-back'></i></button>
-            <div class="score-box">
-                <div class="score-label">DISTÂNCIA</div>
-                <div class="score-val" id="score-display">0000</div>
+        <div class="hud-header">
+            <button onclick="window.location.href='index.html'" class="btn-icon"><i class='bx bx-arrow-back'></i></button>
+            <div class="score-container">
+                <div class="label">PONTOS</div>
+                <div class="big-number" id="score-val">0</div>
+                <div class="label" style="margin-top:5px; color:#aaa;">RECORD: <span id="high-score-val">0</span></div>
             </div>
         </div>
-        <div class="touch-zone">
-            Toque repetidamente para acelerar!
+        <div class="tap-zone" id="control-zone">
+            <p><i class='bx bxs-hand-up'></i> TOQUE PARA ACELERAR | INCLINE PARA DESVIAR</p>
         </div>
     </div>
 
-    <div id="start-screen">
-        <h1 style="font-size: 40px; color: #ffcc00; font-style: italic;">thIAguinho AR</h1>
-        <p style="margin: 10px 0; font-size: 14px; max-width: 80%;">
-            <i class='bx bx-mobile-vibration'></i> Incline para desviar<br>
-            <i class='bx bxs-hand-up'></i> Toque para acelerar
+    <div id="start-screen" class="overlay-screen">
+        <div style="width: 80px; height: 80px; background: #ffcc00; border-radius: 50%; margin-bottom: 20px; display:flex; align-items:center; justify-content:center;">
+            <i class='bx bxs-car-crash' style="font-size: 40px; color: black;"></i>
+        </div>
+        <h1>Corrida AR</h1>
+        <p style="max-width: 80%; margin-bottom: 30px; font-size: 14px; color: #ccc;">
+            Desvie dos obstáculos vermelhos!<br>
+            Incline o celular para os lados.
         </p>
-        <button class="start-btn" onclick="startGame()">JOGAR AGORA</button>
-        <p style="margin-top: 15px; font-size: 10px; color: #aaa;">Permita o uso da câmera</p>
+        <button class="action-btn" onclick="Game.init()">INICIAR MOTORES</button>
     </div>
 
-    <div id="debug-info">Aguardando...</div>
+    <div id="game-over-screen" class="overlay-screen hidden">
+        <h1 style="color: #ff3333;">BATIDA!</h1>
+        <p style="margin-bottom: 10px;">Pontuação Final</p>
+        <div class="big-number" id="final-score" style="margin-bottom: 30px; color: #fff;">0</div>
+        <button class="action-btn" onclick="Game.restart()">TENTAR DE NOVO</button>
+    </div>
 
     <script>
         /**
-         * thIAguinho AR Engine - Core V1
-         * Foco: Gameplay Sólido, AR Passivo, Controles Responsivos.
+         * thIAguinho AR - Game Logic Completa
+         * Engine V2: Colisões, Objetivos, Game Loop Real.
          */
 
-        // ESTADO DO JOGO
-        const GameState = {
-            scene: null,
-            camera: null,
-            renderer: null,
-            mascot: null,
-            floor: null,
-            isPlaying: false,
+        const Game = {
+            // Estado
+            active: false,
             score: 0,
+            highScore: localStorage.getItem('th_highscore') || 0,
             speed: 0,
-            laneX: 0, // Posição lateral alvo (-1, 0, 1 mapeado para world X)
-            maxSpeed: 0.8,
-            friction: 0.98
-        };
-
-        const Assets = {
-            mascotUrl: './assets/mascote.glb',
-            floorTexture: './assets/estrada.jpg' // Usando textura de estrada padrão
-        };
-
-        // --- INICIALIZAÇÃO ---
-        async function startGame() {
-            // 1. Pedir permissão de câmera e sensores
-            try {
-                await initCamera();
-                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    await DeviceOrientationEvent.requestPermission();
-                }
-            } catch (e) {
-                console.warn("Permissões limitadas ou ambiente desktop", e);
-            }
-
-            document.getElementById('start-screen').style.display = 'none';
-            GameState.isPlaying = true;
+            baseSpeed: 0.5,
+            lane: 0, // -1 (Esq), 0 (Meio), 1 (Dir)
             
-            // Iniciar Audio se tiver (Opcional)
-        }
+            // Objetos 3D
+            scene: null, camera: null, renderer: null,
+            mascot: null, floor: null,
+            obstacles: [], // Array de inimigos
+            
+            // Constantes de Gameplay
+            LANE_WIDTH: 2.5, // Distância entre pistas
+            MAX_SPEED: 1.2,
+            ACCEL: 0.05,
+            SPAWN_RATE: 60, // Frames para criar obstáculo
+            frame: 0,
 
-        async function initCamera() {
-            const video = document.getElementById('cam-feed');
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' }, // Tenta câmera traseira para AR
-                    audio: false 
+            // Inicialização
+            init: async function() {
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('high-score-val').innerText = this.highScore;
+                
+                await this.setupCamera();
+                this.setup3D();
+                this.setupInputs();
+                
+                this.active = true;
+                this.animate();
+            },
+
+            setupCamera: async function() {
+                const video = document.getElementById('cam-feed');
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'environment' }, audio: false 
+                    });
+                    video.srcObject = stream;
+                } catch (e) { console.warn("Modo Debug (Sem câmera)"); }
+            },
+
+            setup3D: function() {
+                // Cena
+                this.scene = new THREE.Scene();
+                
+                // Luzes
+                const amb = new THREE.AmbientLight(0xffffff, 0.6);
+                const dir = new THREE.DirectionalLight(0xffffff, 1);
+                dir.position.set(5, 10, 7);
+                this.scene.add(amb, dir);
+
+                // Câmera
+                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
+                this.camera.position.set(0, 3, 6);
+                this.camera.lookAt(0, 0, -5);
+
+                // Renderizador
+                this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.domElement.id = 'game-canvas';
+                document.body.appendChild(this.renderer.domElement);
+
+                // Chão Infinito
+                const texLoader = new THREE.TextureLoader();
+                const gridTex = texLoader.load('./assets/estrada.jpg');
+                gridTex.wrapS = THREE.RepeatWrapping;
+                gridTex.wrapT = THREE.RepeatWrapping;
+                gridTex.repeat.set(1, 20);
+                
+                const floorGeo = new THREE.PlaneGeometry(8, 200);
+                const floorMat = new THREE.MeshLambertMaterial({ map: gridTex, transparent: true, opacity: 0.9 });
+                this.floor = new THREE.Mesh(floorGeo, floorMat);
+                this.floor.rotation.x = -Math.PI / 2;
+                this.floor.position.z = -80;
+                this.scene.add(this.floor);
+
+                // Carregar Mascote
+                this.loadMascot();
+            },
+
+            loadMascot: function() {
+                const loader = new THREE.GLTFLoader();
+                const draco = new THREE.DRACOLoader();
+                draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
+                loader.setDRACOLoader(draco);
+
+                loader.load('./assets/mascote.glb', (gltf) => {
+                    this.mascot = gltf.scene;
+                    
+                    // Ajuste de escala e rotação
+                    const box = new THREE.Box3().setFromObject(this.mascot);
+                    const size = box.getSize(new THREE.Vector3());
+                    const scale = 1.5 / size.y;
+                    this.mascot.scale.setScalar(scale);
+                    
+                    this.mascot.position.set(0, 0, -2);
+                    // Rotacionar para ficar de costas para a câmera
+                    this.mascot.rotation.y = Math.PI; 
+                    
+                    this.scene.add(this.mascot);
+                }, undefined, () => {
+                    // Fallback se não achar modelo
+                    const geo = new THREE.BoxGeometry(1, 2, 1);
+                    const mat = new THREE.MeshNormalMaterial();
+                    this.mascot = new THREE.Mesh(geo, mat);
+                    this.mascot.position.set(0, 1, -2);
+                    this.scene.add(this.mascot);
                 });
-                video.srcObject = stream;
-            } catch (err) {
-                // Se falhar a traseira ou não tiver permissão, tenta frontal ou ignora
-                console.error("Erro Câmera:", err);
-                const streamFallback = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = streamFallback;
-            }
-        }
+            },
 
-        // --- ENGINE THREE.JS ---
-        function init3D() {
-            const container = document.body;
-
-            // SCENE
-            GameState.scene = new THREE.Scene();
-            // Sem background color, para ver o vídeo atrás
-            
-            // LIGHTS
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
-            GameState.scene.add(hemiLight);
-            
-            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-            dirLight.position.set(5, 10, 7);
-            dirLight.castShadow = true;
-            GameState.scene.add(dirLight);
-
-            // CAMERA
-            GameState.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-            GameState.camera.position.set(0, 3, 6); // Posição de "seguidor"
-            GameState.camera.lookAt(0, 0, -5);
-
-            // RENDERER
-            GameState.renderer = new THREE.WebGLRenderer({ 
-                alpha: true, // ESSENCIAL PARA AR: Fundo transparente
-                antialias: true 
-            });
-            GameState.renderer.setSize(window.innerWidth, window.innerHeight);
-            GameState.renderer.domElement.id = 'game-canvas';
-            container.appendChild(GameState.renderer.domElement);
-
-            // WORLD OBJECTS
-            createFloor();
-            loadMascot();
-
-            // EVENT LISTENERS
-            window.addEventListener('resize', onWindowResize, false);
-            window.addEventListener('deviceorientation', handleTilt);
-            window.addEventListener('touchstart', handleTap);
-            window.addEventListener('keydown', handleKeys); // Debug PC
-
-            // START LOOP
-            animate();
-        }
-
-        function createFloor() {
-            const textureLoader = new THREE.TextureLoader();
-            // Fallback: GridHelper se não tiver textura
-            const grid = new THREE.GridHelper(100, 100, 0xff0000, 0xffffff);
-            grid.position.y = -0.01;
-            // GameState.scene.add(grid); // Comentei para usar o estilo "estrada"
-
-            textureLoader.load(Assets.floorTexture, function(texture) {
-                texture.wrapS = THREE.RepeatWrapping;
-                texture.wrapT = THREE.RepeatWrapping;
-                texture.repeat.set(1, 10);
-                
-                const geometry = new THREE.PlaneGeometry(8, 100);
-                const material = new THREE.MeshBasicMaterial({ 
-                    map: texture,
-                    transparent: true,
-                    opacity: 0.8 // Leve transparência para misturar com câmera
+            setupInputs: function() {
+                // Tilt (Giroscópio)
+                window.addEventListener('deviceorientation', (e) => {
+                    if(!this.active) return;
+                    const tilt = e.gamma || 0; 
+                    // Zona morta de 5 graus para evitar tremedeira
+                    if(tilt > 10) this.lane = 1;
+                    else if(tilt < -10) this.lane = -1;
+                    else this.lane = 0;
                 });
-                
-                GameState.floor = new THREE.Mesh(geometry, material);
-                GameState.floor.rotation.x = -Math.PI / 2;
-                GameState.floor.position.z = -40; // Estende para frente
-                GameState.scene.add(GameState.floor);
-            }, undefined, function(err) {
-                // Se der erro na textura, adiciona o grid
-                GameState.scene.add(grid);
-            });
-        }
 
-        function loadMascot() {
-            const loader = new THREE.GLTFLoader();
-            const dracoLoader = new THREE.DRACOLoader();
-            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
-            loader.setDRACOLoader(dracoLoader);
+                // Touch (Boost de velocidade)
+                const zone = document.getElementById('control-zone');
+                zone.addEventListener('touchstart', (e) => {
+                    e.preventDefault(); // Evita zoom
+                    if(this.active) this.speed = Math.min(this.speed + 0.2, this.MAX_SPEED);
+                });
 
-            loader.load(Assets.mascotUrl, (gltf) => {
-                GameState.mascot = gltf.scene;
+                // Teclado (Debug PC)
+                window.addEventListener('keydown', (e) => {
+                    if(e.key === 'ArrowLeft') this.lane = -1;
+                    if(e.key === 'ArrowRight') this.lane = 1;
+                    if(e.key === 'ArrowUp') this.lane = 0;
+                });
+
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+            },
+
+            // --- LÓGICA DE JOGO (CORE LOOP) ---
+            
+            spawnObstacle: function() {
+                // Cria caixas/cones vermelhos
+                const geo = new THREE.ConeGeometry(0.5, 1.5, 16);
+                const mat = new THREE.MeshPhongMaterial({ color: 0xff0000, shininess: 100 });
+                const obs = new THREE.Mesh(geo, mat);
                 
-                // Ajustes do Modelo
-                GameState.mascot.traverse((o) => {
-                    if(o.isMesh) {
-                        o.castShadow = true;
-                        // Fallback Material
-                        if(!o.material.map) o.material.color.setHex(0xFFD700);
+                // Escolhe pista aleatória (-1, 0, 1)
+                const randomLane = Math.floor(Math.random() * 3) - 1; 
+                
+                obs.position.set(randomLane * this.LANE_WIDTH, 0.75, -80); // Nasce longe
+                obs.castShadow = true;
+                
+                this.scene.add(obs);
+                this.obstacles.push(obs);
+            },
+
+            checkCollisions: function() {
+                if(!this.mascot) return;
+
+                // Caixa de colisão do jogador (simplificada)
+                const playerX = this.mascot.position.x;
+                const playerZ = this.mascot.position.z; // Deve ser approx -2
+
+                for(let i = 0; i < this.obstacles.length; i++) {
+                    const obs = this.obstacles[i];
+                    
+                    // Distância Z (Profundidade)
+                    const distZ = Math.abs(obs.position.z - playerZ);
+                    // Distância X (Lateral)
+                    const distX = Math.abs(obs.position.x - playerX);
+
+                    // Se estiver muito perto em Z (< 1.0) e na mesma pista em X (< 0.8)
+                    if(distZ < 1.5 && distX < 1.0) {
+                        this.gameOver();
                     }
-                });
-
-                // Normalização de Escala e Posição
-                const box = new THREE.Box3().setFromObject(GameState.mascot);
-                const size = box.getSize(new THREE.Vector3());
-                const scale = 1.5 / size.y; // 1.5 metros de altura virtual
-                GameState.mascot.scale.setScalar(scale);
-
-                GameState.mascot.position.set(0, 0, -2); // Posição inicial
-                
-                // Animação Simples (Idle/Run) se houver clips
-                // (Implementação futura de Mixer)
-
-                GameState.scene.add(GameState.mascot);
-
-            }, undefined, (err) => {
-                console.error("Erro loading mascot, usando cubo debug");
-                const geom = new THREE.BoxGeometry(1, 1, 1);
-                const mat = new THREE.MeshNormalMaterial();
-                GameState.mascot = new THREE.Mesh(geom, mat);
-                GameState.mascot.position.set(0, 0.5, -2);
-                GameState.scene.add(GameState.mascot);
-            });
-        }
-
-        // --- CONTROLES ---
-        function handleTilt(event) {
-            // Gamma é a inclinação esquerda/direita (-90 a 90)
-            const tilt = event.gamma; 
-            if (tilt) {
-                // Suaviza e mapeia para limites da pista (-3 a 3)
-                let targetX = tilt * 0.1;
-                targetX = Math.max(-3, Math.min(3, targetX));
-                GameState.laneX = targetX;
-                
-                document.getElementById('debug-info').innerText = `Tilt: ${Math.round(tilt)} | X: ${targetX.toFixed(2)}`;
-            }
-        }
-
-        function handleTap() {
-            if(!GameState.isPlaying) return;
-            // Tap dá um boost de velocidade
-            GameState.speed += 0.05;
-            if(GameState.speed > GameState.maxSpeed) GameState.speed = GameState.maxSpeed;
-        }
-
-        function handleKeys(e) {
-            if(e.key === 'ArrowLeft') GameState.laneX -= 1;
-            if(e.key === 'ArrowRight') GameState.laneX += 1;
-            if(e.key === ' ') handleTap();
-            
-            // Clamp no PC
-            GameState.laneX = Math.max(-3, Math.min(3, GameState.laneX));
-        }
-
-        // --- GAME LOOP ---
-        function update() {
-            if (!GameState.isPlaying) return;
-
-            // 1. Aplica Velocidade e Atrito
-            GameState.speed *= GameState.friction;
-            if(GameState.speed < 0.0) GameState.speed = 0;
-
-            // 2. Pontuação baseada na velocidade
-            GameState.score += Math.round(GameState.speed * 10);
-            document.getElementById('score-display').innerText = GameState.score;
-
-            // 3. Move Mascote (Lerp para suavidade)
-            if (GameState.mascot) {
-                // Interpolação Linear para movimento lateral suave
-                GameState.mascot.position.x += (GameState.laneX - GameState.mascot.position.x) * 0.1;
-                
-                // Efeito de "Corrida" (Pulo suave no Y)
-                if(GameState.speed > 0.1) {
-                    GameState.mascot.position.y = Math.abs(Math.sin(Date.now() * 0.01)) * 0.1;
-                    // Inclinação do corpo nas curvas
-                    GameState.mascot.rotation.z = -GameState.mascot.position.x * 0.1; 
                 }
-            }
+            },
 
-            // 4. Move Pista (Ilusão de Movimento Infinito)
-            if (GameState.floor && GameState.floor.material.map) {
-                // O offset Y da textura cria a ilusão de ir para frente
-                GameState.floor.material.map.offset.y -= GameState.speed * 0.1;
-            }
-        }
+            update: function() {
+                if(!this.active) return;
 
-        function animate() {
-            requestAnimationFrame(animate);
-            update();
-            if (GameState.renderer && GameState.scene && GameState.camera) {
-                GameState.renderer.render(GameState.scene, GameState.camera);
-            }
-        }
+                // 1. Velocidade Base + Inércia
+                this.speed = Math.max(this.speed * 0.98, this.baseSpeed); // Atrito natural
+                
+                // 2. Pontuação
+                this.score += Math.round(this.speed * 2);
+                document.getElementById('score-val').innerText = this.score;
 
-        function onWindowResize() {
-            if(GameState.camera && GameState.renderer) {
-                GameState.camera.aspect = window.innerWidth / window.innerHeight;
-                GameState.camera.updateProjectionMatrix();
-                GameState.renderer.setSize(window.innerWidth, window.innerHeight);
-            }
-        }
+                // Aumenta dificuldade a cada 1000 pontos
+                if(this.score % 1000 === 0) {
+                    this.baseSpeed += 0.05;
+                    this.SPAWN_RATE = Math.max(20, this.SPAWN_RATE - 2);
+                }
 
-        // Boot
-        window.onload = init3D;
+                // 3. Movimento Mascote
+                if(this.mascot) {
+                    const targetX = this.lane * this.LANE_WIDTH;
+                    // Lerp suave para mudar de pista
+                    this.mascot.position.x += (targetX - this.mascot.position.x) * 0.15;
+                    
+                    // Inclinação do corpo ao virar
+                    this.mascot.rotation.z = -(this.mascot.position.x - targetX) * 0.3;
+                    this.mascot.rotation.y = Math.PI; // Mantém de costas
+                }
+
+                // 4. Movimento Pista (Visual)
+                if(this.floor.material.map) {
+                    this.floor.material.map.offset.y -= this.speed * 0.02;
+                }
+
+                // 5. Gerenciar Obstáculos
+                this.frame++;
+                if(this.frame % this.SPAWN_RATE === 0) {
+                    this.spawnObstacle();
+                }
+
+                // Mover e limpar obstáculos
+                for(let i = this.obstacles.length - 1; i >= 0; i--) {
+                    let obs = this.obstacles[i];
+                    obs.position.z += this.speed; // Move em direção à câmera
+
+                    // Remove se passou da câmera
+                    if(obs.position.z > 5) {
+                        this.scene.remove(obs);
+                        this.obstacles.splice(i, 1);
+                    }
+                }
+
+                // 6. Verificar Batida
+                this.checkCollisions();
+            },
+
+            animate: function() {
+                if(!this.active) return;
+                requestAnimationFrame(() => this.animate());
+                this.update();
+                this.renderer.render(this.scene, this.camera);
+            },
+
+            gameOver: function() {
+                this.active = false;
+                
+                // Feedback Visual
+                const flash = document.getElementById('damage-overlay');
+                flash.style.opacity = 0.8;
+                setTimeout(() => flash.style.opacity = 0, 200);
+
+                // Salvar Recorde
+                if(this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('th_highscore', this.highScore);
+                }
+
+                // Mostrar Tela
+                document.getElementById('final-score').innerText = this.score;
+                document.getElementById('game-over-screen').classList.remove('hidden');
+            },
+
+            restart: function() {
+                // Resetar Variáveis
+                this.score = 0;
+                this.baseSpeed = 0.5;
+                this.speed = 0;
+                this.obstacles.forEach(obs => this.scene.remove(obs));
+                this.obstacles = [];
+                
+                // UI
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('high-score-val').innerText = this.highScore;
+                
+                // Reiniciar Loop
+                this.active = true;
+                this.animate();
+            }
+        };
+
+        // Previne scroll no iOS
+        document.body.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive: false });
 
     </script>
 </body>
