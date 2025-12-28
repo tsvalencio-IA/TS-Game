@@ -1,18 +1,9 @@
 {
-  "name": "thIAguinho Arcade",
-  "short_name": "thIAguinho",
-  "description": "O melhor Arcade de dança e corrida por movimento!",
-  "start_url": "index.html",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#111111",
-  "theme_color": "#c92a2a",
-  "icons": [
-    {
-      "src": "assets/mascote_perfil.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any maskable"
-    }
-  ]
+  "name": "Motion Party Game",
+  "short_name": "MotionGame",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#00ffcc",
+  "orientation": "portrait"
 }
