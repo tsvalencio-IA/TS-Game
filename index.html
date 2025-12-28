@@ -1,116 +1,23 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TS-Game | thIAguinho Animado</title>
-    
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#FFCC00">
-
-    <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-        
-        /* Painel de Controle do Jogo */
-        #game-ui {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            z-index: 100;
-        }
-
-        .control-btn {
-            background: #ffcc00;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-weight: bold;
-            box-shadow: 0 4px 0 #b38f00;
-            cursor: pointer;
-            min-width: 80px;
-        }
-
-        .control-btn:active {
-            transform: translateY(4px);
-            box-shadow: none;
-        }
-
-        #loading-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #1a1a1a;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            color: #ffcc00;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Motion Rush</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="center">
 
-    <div id="loading-overlay">
-        <h2>TS-GAME</h2>
-        <p>DANDO VIDA AO THIAGUINHO...</p>
-    </div>
+  <h1>Motion Rush</h1>
+  <p>Mexa-se. Corra. Repita.</p>
 
-    <div id="game-ui">
-        <button class="control-btn" onclick="playAnim('idle')">PARADO</button>
-        <button class="control-btn" onclick="playAnim('walk')">ANDAR</button>
-        <button class="control-btn" onclick="playAnim('run')">CORRER</button>
-    </div>
+  <button onclick="startGame()">COMEÇAR</button>
 
-    <a-scene 
-        embedded 
-        arjs="sourceType: webcam; debugUIEnabled: false;"
-        renderer="antialias: true; colorManagement: true;"
-        vr-mode-ui="enabled: false">
-        
-        <a-assets>
-            <a-asset-item id="th-animado" src="assets/models/thiaguinho_animado.glb"></a-asset-item>
-        </a-assets>
+  <script>
+    function startGame(){
+      window.location.href = "jogos.html";
+    }
+  </script>
 
-        <a-marker preset="hiro">
-            <a-entity 
-                id="thiaguinho"
-                gltf-model="#th-animado"
-                scale="1 1 1"
-                position="0 0 0"
-                animation-mixer="clip: idle; loop: repeat">
-            </a-entity>
-        </a-marker>
-
-        <a-entity camera></a-entity>
-    </a-scene>
-
-    <script>
-        // Função para trocar a animação do thIAguinho
-        function playAnim(nome) {
-            const boneco = document.querySelector('#thiaguinho');
-            // O nome do 'clip' deve ser igual ao nome da animação no Mixamo
-            boneco.setAttribute('animation-mixer', `clip: ${nome}; crossFadeDuration: 0.4`);
-            console.log("Mudando para: " + nome);
-        }
-
-        // Esconder loading
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                document.getElementById('loading-overlay').style.display = 'none';
-            }, 2500);
-        });
-
-        // Registrar PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
 </body>
 </html>
