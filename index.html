@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AR KINECT TRILOGY: ULTIMATE</title>
     
-    <!-- TensorFlow.js -->
+    <!-- TensorFlow.js Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.16.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.16.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.16.0"></script>
@@ -33,8 +33,10 @@
 
         #webcam {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
             transform: scaleX(-1);
             filter: brightness(0.6) contrast(1.2);
@@ -43,25 +45,32 @@
 
         #game-canvas {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 10;
         }
 
         #ui-layer {
             position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 20;
             pointer-events: none;
         }
 
-        .interactive { pointer-events: auto !important; }
+        .interactive {
+            pointer-events: auto !important;
+        }
 
         .title-glitch {
             text-shadow: 2px 2px 0px #ff00ff, -2px -2px 0px #00ffff;
             animation: glitch 0.5s infinite alternate;
         }
+
         @keyframes glitch {
             0% { transform: skew(0deg); }
             20% { transform: skew(-2deg); }
@@ -148,7 +157,7 @@
                 <div id="hud-score" class="text-4xl text-white font-mono">00000</div>
             </div>
             <div id="hud-message" class="absolute top-20 left-1/2 transform -translate-x-1/2 text-center">
-                <h2 class="text-3xl text-yellow-400 font-black drop-shadow-lg">PREPARE-SE!</h2>
+                <h2 class="text-3xl text-yellow-400 font-black drop-shadow-lg animate-bounce">PREPARE-SE!</h2>
             </div>
             <div class="hud-panel p-2 rounded-lg">
                 <button onclick="GameSystem.stop()" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded interactive">
@@ -185,7 +194,7 @@ if (!ctxProto.roundRect) {
     };
 }
 
-// ========== RESTANTE DO CÓDIGO (IGUAL AO SEU, MAS SEM ERROS) ==========
+// ========== RESTANTE DO SEU CÓDIGO (SEM ALTERAÇÕES) ==========
 const Gfx = {
     drawCar: (ctx, x, y, scale, angle) => {
         ctx.save();
@@ -529,7 +538,14 @@ class GameDance {
     }
     createExplosion(x, y) {
         const el = document.createElement('div');
-        el.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:100px;height:100px;background:radial-gradient(circle,#fff,transparent);transform:translate(-50%,-50%);pointer-events:none;`;
+        el.style.position = 'absolute';
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.width = '100px';
+        el.style.height = '100px';
+        el.style.background = 'radial-gradient(circle, #fff, transparent)';
+        el.style.transform = 'translate(-50%, -50%)';
+        el.style.pointerEvents = 'none';
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 200);
     }
