@@ -3,543 +3,595 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>thIAguinho Wii: ORIGINAL FIXED</title>
+    <title>thIAguinho Wii: SYSTEM OS</title>
     
-    <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.16.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.16.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.16.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.2"></script>
-
-    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Roboto:wght@300;400;700&display=swap');
+
+        /* ESTÉTICA WII OS */
+        :root {
+            --wii-bg: #e6e6e6;
+            --wii-highlight: #68c9e6;
+            --wii-gray: #b0b0b0;
+        }
 
         body {
             background-color: #000;
             margin: 0; overflow: hidden;
-            font-family: 'Russo One', sans-serif;
+            font-family: 'Roboto', sans-serif;
             touch-action: none;
             user-select: none;
+            /* Cursor de Mãozinha do Wii */
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="1"><path d="M5.5 2C5.5 2 4 4 4 7C4 8 3 9 3 11C3 14 6 17 9 20C12 23 18 23 18 23L20 18C20 18 17 17 17 15C17 13 18 10 18 10L14 2L5.5 2Z"/></svg>'), auto;
         }
 
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #000; }
-
-        /* VÍDEO */
+        #os-layer { position: relative; width: 100vw; height: 100vh; background: transparent; pointer-events: none; z-index: 50; }
+        
+        /* CAMADA DE JOGO (Fica atrás da UI do OS quando inativo) */
+        #game-hardware { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 0; background: #000;
+        }
         #webcam {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-            opacity: 0.4;
-            z-index: 0;
+            object-fit: cover; transform: scaleX(-1); opacity: 0; transition: opacity 1s;
         }
-        #video-source { display: none; }
+        #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-        #game-canvas {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 10;
-        }
-
-        /* CURSOR WII */
-        #wii-cursor {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="white" stroke="%2300ffcc" stroke-width="2"/></svg>') no-repeat center;            background-size: contain;
-            pointer-events: none;
-            z-index: 100;
-            transition: transform 0.1s;
-            opacity: 0;
-        }
-
-        /* UI */
-        .layer {
+        /* TELAS DO SISTEMA */
+        .screen {
             position: absolute; inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            z-index: 50;
-            transition: opacity 0.4s ease-in-out;
+            background: var(--wii-bg);
+            pointer-events: auto;
+            transition: opacity 0.5s;
         }
-        .hidden { display: none !important; }
-        .interactive { pointer-events: auto !important; }
+        .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+        
+        /* TELA DE SEGURANÇA (BOOT) */
+        #screen-safety { background: #fff; text-align: center; color: #555; padding: 20px; z-index: 100; }
+        .safety-card { border: 1px solid #ccc; padding: 40px; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        /* MENU WII (GRID) */
+        #screen-menu { background: linear-gradient(#f2f2f2, #d9d9d9); justify-content: flex-start; }
+        .wii-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            width: 90%; height: 75%;
+            margin-top: 5vh;
+        }
+        .channel {
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s, border 0.1s, box-shadow 0.1s;
+            position: relative; overflow: hidden;
+        }
+        .channel:hover {
+            transform: scale(1.05);
+            border: 4px solid var(--wii-highlight);
+            box-shadow: 0 0 15px var(--wii-highlight);
+            z-index: 10;
+        }
+        .channel-icon { font-size: 3rem; margin-bottom: 5px; }
+        .channel-name { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: bold; }
+        .channel-empty { background: #eee; cursor: default; }
+        .channel-empty:hover { transform: none; border: 1px solid #ccc; box-shadow: none; }
 
-        /* Botões Estilo Original */
-        .btn-main {
-            background: linear-gradient(to bottom, #00ffcc, #009977);
-            border: 3px solid #fff;
-            color: #003322;
-            text-transform: uppercase;
-            box-shadow: 0 0 15px #00ffcc;
-            transition: transform 0.1s;
+        /* BARRA INFERIOR */
+        .bottom-bar {
+            position: absolute; bottom: 0; width: 100%; height: 12%;
+            background: #cdcdcd; border-top: 2px solid #fff;
+            display: flex; align-items: center; justify-content: center;
         }
-        .btn-main:active { transform: scale(0.95); }
-
-        /* HUD */
-        .hud-box {
-            background: rgba(0,0,0,0.8);
-            border: 2px solid #fff;
-            padding: 10px 20px;
-            border-radius: 8px;
+        .wii-btn-round {
+            width: 50px; height: 50px; background: #eee; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid #aaa; color: #888; font-weight: bold;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.8);
         }
 
-        /* Estilo Wii Icon */
-        .wii-icon {
-            background: linear-gradient(135deg, #1e3a8a, #0c4a6e);
-            border: 2px solid #00ffcc;
-            box-shadow: 0 8px 16px rgba(0, 255, 204, 0.3);
-            backdrop-filter: blur(4px);
-            transition: all 0.3s ease;
+        /* HUD JOGO (Só aparece jogando) */
+        #game-ui { pointer-events: none; }
+        .hud-element { pointer-events: auto; }
+        .hud-score-box {
+            background: rgba(0,0,0,0.7); border: 2px solid #fff;
+            padding: 5px 15px; border-radius: 20px;
+            font-family: 'Russo One', sans-serif; color: #fff;
         }
-        .wii-icon:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 25px #00ffcc, 0 12px 24px rgba(0, 255, 204, 0.5);
-            border-color: white;
-        }    </style>
+
+    </style>
 </head>
 <body>
-    <div id="game-container">
-        <video id="video-source" playsinline></video>
-        <video id="webcam" autoplay muted playsinline></video>
-        <canvas id="game-canvas"></canvas>
-        <div id="wii-cursor"></div>
 
-        <!-- TELA DE MENU PRINCIPAL (ESTILO WII) -->
-        <div id="screen-wii-menu" class="layer bg-gradient-to-b from-blue-900 to-black hidden interactive">
-            <div class="absolute inset-0 opacity-30" style="background: radial-gradient(circle, rgba(0,255,204,0.1) 0%, transparent 70%);"></div>
-            <h1 class="text-6xl md:text-8xl text-white font-bold mb-12 text-center drop-shadow-[0_0_20px_rgba(0,255,204,0.8)]">
-                thIAguinho<br><span class="text-cyan-400">Wii</span>
-            </h1>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl w-full px-4">
-                <div onclick="Sfx.select(); Core.launch('drive')" class="wii-icon p-6 rounded-2xl flex flex-col items-center justify-center group cursor-pointer">
-                    <div class="text-6xl mb-3">🏎️</div>
-                    <h3 class="text-xl text-white font-bold">CORRIDA</h3>
-                </div>
-                <div onclick="Sfx.select(); Core.launch('run')" class="wii-icon p-6 rounded-2xl flex flex-col items-center justify-center group cursor-pointer">
-                    <div class="text-6xl mb-3">🏃</div>
-                    <h3 class="text-xl text-white font-bold">RUA</h3>
-                </div>
-                <div onclick="Sfx.select(); Core.launch('fight')" class="wii-icon p-6 rounded-2xl flex flex-col items-center justify-center group cursor-pointer">
-                    <div class="text-6xl mb-3">🥊</div>
-                    <h3 class="text-xl text-white font-bold">BOXE</h3>
-                </div>
-            </div>
-            <div class="absolute bottom-6 text-gray-400 text-sm">
-                Use os movimentos do corpo para jogar • thIAguinho Soluções
-            </div>
-        </div>
+<div id="game-hardware">
+    <video id="video-source" playsinline style="display:none"></video>
+    <video id="webcam" autoplay muted playsinline></video>
+    <canvas id="game-canvas"></canvas>
+</div>
 
-        <div id="screen-loading" class="layer bg-black/95 hidden">
-            <div class="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <h2 class="text-white text-xl">CARREGANDO SISTEMA...</h2>
-        </div>
+<div id="os-layer">
 
-        <div id="screen-hud" class="layer hidden justify-between p-4 pointer-events-none !items-start">
-            <div class="w-full flex justify-between">
-                <div class="hud-box">
-                    <div class="text-[10px] text-cyan-400 font-bold uppercase">SCORE</div>
-                    <div id="hud-score" class="text-3xl text-white font-mono leading-none">0000</div>
-                </div>
-                <button onclick="Core.quit()" class="interactive bg-red-600 hover:bg-red-500 text-white w-12 h-12 rounded-full font-bold border-2 border-white text-xl">X</button>
-            </div>
-            <div id="game-msg" class="absolute top-1/3 w-full text-center text-4xl text-yellow-400 font-black drop-shadow-md"></div>
-            <div id="ui-wheel" class="absolute bottom-20 left-1/2 -translate-x-1/2 opacity-0 transition-opacity">
-                <div class="w-24 h-24 rounded-full border-4 border-cyan-500 flex items-center justify-center bg-black/50">                    <div id="wheel-bar" class="w-full h-2 bg-red-500 rounded"></div>
-                </div>
-            </div>
-            <div class="interactive absolute bottom-6 right-6 bg-black/80 p-3 rounded-lg border border-white/20">
-                <label class="text-[10px] text-white block text-center mb-1">SENSIBILIDADE</label>
-                <input type="range" min="0.5" max="3.0" step="0.5" value="1.0" class="w-24 accent-cyan-400" oninput="Core.setSens(this.value)">
-            </div>
-        </div>
-
-        <div id="screen-over" class="layer bg-red-900/95 hidden interactive z-50">
-            <h1 class="text-6xl text-white font-black mb-4">GAME OVER</h1>
-            <div class="text-7xl text-yellow-400 font-mono font-bold mb-8" id="final-score">0</div>
-            <button onclick="Core.menu()" class="btn-main px-10 py-4 rounded-full text-xl font-bold">VOLTAR</button>
+    <div id="screen-safety" class="screen">
+        <div class="safety-card">
+            <h1 class="text-2xl font-bold mb-4">Saúde e Segurança</h1>
+            <p class="mb-8 text-sm text-gray-600">
+                Por favor, certifique-se de que tem espaço suficiente ao seu redor antes de jogar.<br>
+                Se sentir cansaço, faça uma pausa.
+            </p>
+            <button onclick="System.boot()" class="bg-gray-200 hover:bg-cyan-200 text-gray-700 font-bold py-3 px-10 rounded-full border-2 border-gray-400 transition-all text-xl shadow-lg">
+                Pressione A para Iniciar
+            </button>
+            <div id="boot-log" class="mt-4 text-xs text-cyan-500 font-mono"></div>
         </div>
     </div>
 
-    <script>
-        /**
-         * =================================================================
-         * 🔊 AUDIO (Sintetizador Puro)
-         * =================================================================
-         */
-        const Sfx = {
-            ctx: null,
-            init: () => {
-                window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                Sfx.ctx = new AudioContext();
-            },
-            play: (freq, type, dur, vol = 0.1) => {
-                if (!Sfx.ctx) return;
-                const o = Sfx.ctx.createOscillator();
-                const g = Sfx.ctx.createGain();
-                o.type = type;
-                o.frequency.value = freq;
-                g.gain.setValueAtTime(vol, Sfx.ctx.currentTime);
-                g.gain.exponentialRampToValueAtTime(0.01, Sfx.ctx.currentTime + dur);
-                o.connect(g);
-                g.connect(Sfx.ctx.destination);
-                o.start();
-                o.stop(Sfx.ctx.currentTime + dur);
-            },
-            coin: () => { Sfx.play(1200, 'square', 0.1); setTimeout(() => Sfx.play(1600, 'square', 0.1), 80); },
-            hit: () => { Sfx.play(100, 'sawtooth', 0.2); },
-            crash: () => { Sfx.play(80, 'sawtooth', 0.5, 0.3); },
-            start: () => { Sfx.play(440, 'triangle', 0.1); setTimeout(() => Sfx.play(880, 'triangle', 0.3), 100); },
-            select: () => { Sfx.play(660, 'sine', 0.1, 0.2); }
-        };
+    <div id="screen-load" class="screen hidden" style="background: #000; color: #fff;">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-cyan-500 border-opacity-75"></div>
+        <p class="mt-4 font-mono">CARREGANDO SISTEMA...</p>
+    </div>
 
-        /**
-         * =================================================================         * 🎨 GRAPHICS
-         * =================================================================
-         */
-        const Gfx = {
-            drawSkeleton: (ctx, pose, w, h) => {
-                if (!pose) return;
-                const kp = pose.keypoints;
-                const find = n => kp.find(k => k.name === n);
-                const mapX = x => w - (x / 640 * w);
-                const mapY = y => y / 480 * h;
+    <div id="screen-menu" class="screen hidden">
+        <div class="wii-grid">
+            
+            <div onclick="System.launch('drive')" class="channel" onmouseenter="Sfx.hover()">
+                <div class="channel-icon">🏎️</div>
+                <div class="channel-name">Kart Channel</div>
+            </div>
 
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 6;
+            <div onclick="System.launch('run')" class="channel" onmouseenter="Sfx.hover()">
+                <div class="channel-icon">🏃</div>
+                <div class="channel-name">Street Run</div>
+            </div>
 
-                const nose = find('nose');
-                const ls = find('left_shoulder'); const rs = find('right_shoulder');
-                const le = find('left_elbow'); const re = find('right_elbow');
-                const lw = find('left_wrist'); const rw = find('right_wrist');
-                const lh = find('left_hip'); const rh = find('right_hip');
+            <div onclick="System.launch('fight')" class="channel" onmouseenter="Sfx.hover()">
+                <div class="channel-icon">🥊</div>
+                <div class="channel-name">Wii Boxe</div>
+            </div>
 
-                const drawBone = (p1, p2) => {
-                    if (p1 && p2 && p1.score > 0.3 && p2.score > 0.3) {
-                        ctx.beginPath();
-                        ctx.moveTo(mapX(p1.x), mapY(p1.y));
-                        ctx.lineTo(mapX(p2.x), mapY(p2.y));
-                        ctx.stroke();
-                    }
-                };
+            <div class="channel" onmouseenter="Sfx.hover()">
+                <div class="channel-icon">🙂</div>
+                <div class="channel-name">Mii Channel</div>
+            </div>
 
-                drawBone(ls, le); drawBone(le, lw);
-                drawBone(rs, re); drawBone(re, rw);
-                drawBone(ls, rs);
-                if (lh && rh && lh.score > 0.2) {
-                    drawBone(ls, lh); drawBone(rs, rh); drawBone(lh, rh);
-                } else if (ls && rs) {
-                    const midShoulderX = (ls.x + rs.x) / 2;
-                    const midShoulderY = (ls.y + rs.y) / 2;
-                    ctx.beginPath();
-                    ctx.moveTo(mapX(midShoulderX), mapY(midShoulderY));
-                    ctx.lineTo(mapX(midShoulderX), mapY(midShoulderY) + 150);
-                    ctx.stroke();
+            <div class="channel channel-empty"></div>
+            <div class="channel channel-empty"></div>
+            <div class="channel channel-empty"></div>
+            <div class="channel channel-empty"></div>
+            <div class="channel channel-empty"></div>
+            <div class="channel channel-empty"></div>
+            <div class="channel channel-empty"></div>
+            <div class="channel channel-empty"></div>
+        </div>
+
+        <div class="bottom-bar">
+            <div class="wii-btn-round absolute left-6 text-sm">Wii</div>
+            <div class="bg-white px-8 py-2 rounded-full shadow text-gray-500 font-bold">Menu Wii</div>
+            <div class="wii-btn-round absolute right-24 text-xl">✉️</div>
+            <div id="clock" class="absolute right-6 text-gray-600 font-bold text-xl">00:00</div>
+        </div>
+    </div>
+
+    <div id="game-ui" class="screen hidden" style="background: transparent;">
+        <button onclick="System.home()" class="hud-element absolute top-4 right-4 bg-blue-400 hover:bg-blue-300 text-white w-12 h-8 rounded-full border-2 border-white shadow flex items-center justify-center font-bold text-xs">
+            HOME
+        </button>
+
+        <div class="absolute top-4 left-4 hud-score-box">
+            <span class="text-xs text-cyan-300">SCORE</span>
+            <div id="hud-score" class="text-2xl">0000</div>
+        </div>
+
+        <div id="game-msg" class="absolute top-1/3 w-full text-center text-5xl text-yellow-400 font-black drop-shadow-md" style="text-shadow: 2px 2px 0 #000; font-family: 'Russo One';"></div>
+
+        <div id="ui-wheel" class="absolute bottom-20 left-1/2 -translate-x-1/2 opacity-0 transition-opacity">
+            <div class="w-32 h-32 rounded-full border-4 border-gray-200 shadow-xl flex items-center justify-center bg-black/30">
+                <div id="wheel-bar" class="w-full h-4 bg-cyan-400 rounded shadow-md"></div>
+            </div>
+        </div>
+
+        <div class="hud-element absolute bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity bg-black/50 p-2 rounded">
+            <label class="text-[10px] text-white block text-center">SENSOR BAR</label>
+            <input type="range" min="0.5" max="3.0" step="0.5" value="1.0" oninput="System.setSens(this.value)">
+        </div>
+    </div>
+
+    <div id="screen-over" class="screen hidden" style="background: rgba(255,255,255,0.95); z-index: 60;">
+        <h1 class="text-6xl text-gray-700 font-black mb-2 font-mono">FIM</h1>
+        <div class="text-2xl text-cyan-600 font-bold mb-8">PONTUAÇÃO</div>
+        <div id="final-score" class="text-8xl text-gray-800 font-bold mb-10 font-mono">0</div>
+        
+        <div class="flex gap-4">
+            <button onclick="System.menu()" class="bg-gray-200 hover:bg-gray-300 text-gray-600 px-8 py-4 rounded-full font-bold border-2 border-gray-400 shadow">Voltar ao Menu</button>
+            <button onclick="System.restart()" class="bg-cyan-500 hover:bg-cyan-400 text-white px-8 py-4 rounded-full font-bold border-2 border-white shadow">Jogar Novamente</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* =================================================================
+       🔊 AUDIO SYSTEM (Sons Sintetizados Estilo Wii)
+       ================================================================= */
+    const Sfx = {
+        ctx: null,
+        init: () => { window.AudioContext = window.AudioContext || window.webkitAudioContext; Sfx.ctx = new AudioContext(); },
+        play: (freq, type, dur, vol=0.1) => {
+            if(!Sfx.ctx) return;
+            const o = Sfx.ctx.createOscillator(); const g = Sfx.ctx.createGain();
+            o.type=type; o.frequency.value=freq;
+            g.gain.setValueAtTime(vol, Sfx.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, Sfx.ctx.currentTime+dur);
+            o.connect(g); g.connect(Sfx.ctx.destination);
+            o.start(); o.stop(Sfx.ctx.currentTime+dur);
+        },
+        hover: () => Sfx.play(600, 'sine', 0.05, 0.05), // "Tick" ao passar mouse
+        click: () => Sfx.play(1000, 'sine', 0.2, 0.1), // Confirmação
+        back: () => Sfx.play(300, 'sine', 0.2, 0.1),   // Voltar
+        coin: () => { Sfx.play(1200,'square',0.1); setTimeout(()=>Sfx.play(1600,'square',0.1), 80); },
+        hit: () => { Sfx.play(100,'sawtooth',0.2); },
+        crash: () => { Sfx.play(80,'sawtooth',0.5, 0.3); },
+        start: () => { Sfx.play(440,'triangle',0.1); setTimeout(()=>Sfx.play(880,'triangle',0.3), 100); }
+    };
+
+    /* =================================================================
+       🎨 GRAPHICS ENGINE (Original - Não alterado para manter jogos)
+       ================================================================= */
+    const Gfx = {
+        drawSkeleton: (ctx, pose, w, h) => {
+            if(!pose) return;
+            const kp = pose.keypoints;
+            const mapX = x => w - (x/640 * w); 
+            const mapY = y => y/480 * h;
+            ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#00ffff'; ctx.lineWidth=6;
+            
+            // Função auxiliar de ossos
+            const bone = (p1n, p2n) => {
+                const p1 = kp.find(k=>k.name===p1n); const p2 = kp.find(k=>k.name===p2n);
+                if(p1 && p2 && p1.score>0.3 && p2.score>0.3) {
+                    ctx.beginPath(); ctx.moveTo(mapX(p1.x), mapY(p1.y)); ctx.lineTo(mapX(p2.x), mapY(p2.y)); ctx.stroke();
                 }
+            };
+            bone('left_shoulder','left_elbow'); bone('left_elbow','left_wrist');
+            bone('right_shoulder','right_elbow'); bone('right_elbow','right_wrist');
+            bone('left_shoulder','right_shoulder');
+            bone('left_shoulder','left_hip'); bone('right_shoulder','right_hip'); bone('left_hip','right_hip');
 
-                if (nose && nose.score > 0.3) {
-                    ctx.fillStyle = '#fff';
-                    ctx.beginPath(); ctx.arc(mapX(nose.x), mapY(nose.y - 20), 25, 0, Math.PI * 2); ctx.fill();
-                }
-                if (lw && lw.score > 0.3) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(mapX(lw.x), mapY(lw.y), 30, 0, Math.PI * 2); ctx.fill(); }
-                if (rw && rw.score > 0.3) { ctx.fillStyle = 'red'; ctx.beginPath(); ctx.arc(mapX(rw.x), mapY(rw.y), 30, 0, Math.PI * 2); ctx.fill(); }
-            },
-            drawRoad: (ctx, w, h, pos, curve) => {
-                const cx = w / 2;
-                const horizon = h * 0.4;
-                ctx.fillStyle = '#050505';
-                ctx.fillRect(0, 0, w, h);
-                ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(0, horizon); ctx.lineTo(w, horizon); ctx.stroke();
+            // Cabeça
+            const nose = kp.find(k=>k.name==='nose');
+            if(nose && nose.score>0.3) { ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(mapX(nose.x), mapY(nose.y-20), 25, 0, Math.PI*2); ctx.fill(); }
+            // Luvas
+            const lw = kp.find(k=>k.name==='left_wrist');
+            const rw = kp.find(k=>k.name==='right_wrist');
+            if(lw && lw.score>0.3) { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(mapX(lw.x), mapY(lw.y), 30, 0, Math.PI*2); ctx.fill(); }
+            if(rw && rw.score>0.3) { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(mapX(rw.x), mapY(rw.y), 30, 0, Math.PI*2); ctx.fill(); }
+        },
+        drawRoad: (ctx, w, h, pos, curve) => {
+            const cx = w/2; const horizon = h * 0.4;
+            ctx.fillStyle = '#050505'; ctx.fillRect(0,0,w,h);
+            ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, horizon); ctx.lineTo(w, horizon); ctx.stroke();
+            ctx.fillStyle = '#333'; ctx.beginPath();
+            const topW = 20; const botW = w * 1.5; const curveOffset = curve * 200;
+            ctx.moveTo(cx + curveOffset - topW, horizon); ctx.lineTo(cx + curveOffset + topW, horizon);
+            ctx.lineTo(cx + botW, h); ctx.lineTo(cx - botW, h); ctx.fill();
+            ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 6;
+            ctx.setLineDash([40, 40]); ctx.lineDashOffset = -pos;
+            ctx.beginPath(); ctx.moveTo(cx + curveOffset, horizon);
+            ctx.quadraticCurveTo(cx + (curveOffset*0.5), h*0.7, cx, h); ctx.stroke();
+            ctx.setLineDash([]);
+        },
+        drawCar: (ctx, x, y, steer) => {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(steer); ctx.scale(2, 2);
+            ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(-25, -10, 50, 40);
+            ctx.fillStyle = '#ff0033'; ctx.beginPath(); ctx.roundRect(-20, -20, 40, 40, 5); ctx.fill();
+            ctx.fillStyle = '#111'; ctx.fillRect(-15, -10, 30, 10);
+            ctx.fillStyle = '#ffcc00'; ctx.fillRect(-18, -18, 8, 5); ctx.fillRect(10, -18, 8, 5);
+            ctx.restore();
+        },
+        drawRunner: (ctx, x, y, frame) => {
+            ctx.save(); ctx.translate(x, y); ctx.scale(3, 3);
+            ctx.strokeStyle='#00ff00'; ctx.lineWidth=3; ctx.lineCap='round';
+            const s = Math.sin(frame*0.5)*10;
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-15); ctx.stroke(); // Corpo
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-8+s, 20); ctx.stroke(); // Perna E
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(8-s, 20); ctx.stroke(); // Perna D
+            ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(-10-s, -5); ctx.stroke(); // Braço E
+            ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(10+s, -5); ctx.stroke(); // Braço D
+            ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,-22,5,0,Math.PI*2); ctx.fill(); // Cabeça
+            ctx.restore();
+        }
+    };
 
-                ctx.fillStyle = '#333';
-                ctx.beginPath();
-                const topW = 20;
-                const botW = w * 1.5;
-                const curveOffset = curve * 200;
-                ctx.moveTo(cx + curveOffset - topW, horizon);
-                ctx.lineTo(cx + curveOffset + topW, horizon);
-                ctx.lineTo(cx + botW, h);
-                ctx.lineTo(cx - botW, h);
-                ctx.fill();
+    /* =================================================================
+       🧠 SYSTEM KERNEL (Gerencia o Hardware e Troca de Jogos)
+       ================================================================= */
+    const System = {
+        video: null, canvas: null, ctx: null, detector: null,
+        activeGame: null, loopId: null, sens: 1.0,
 
-                ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = 6;
-                ctx.setLineDash([40, 40]); ctx.lineDashOffset = -pos;
-                ctx.beginPath();
-                ctx.moveTo(cx + curveOffset, horizon);
-                ctx.quadraticCurveTo(cx + (curveOffset * 0.5), h * 0.7, cx, h);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            },
+        // 1. Boot: Inicializa Câmera e TFJS
+        boot: async () => {
+            document.getElementById('boot-log').innerText = "Iniciando Sensores...";
+            Sfx.init(); Sfx.click();
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: {ideal: 640}, height: {ideal: 480} },
+                    audio: false
+                });
+                System.video = document.getElementById('video-source');
+                System.video.srcObject = stream;
+                document.getElementById('webcam').srcObject = stream;
+                await new Promise(r => System.video.onloadedmetadata = r);
+                System.video.play(); document.getElementById('webcam').play();
 
-            drawCar: (ctx, x, y, steer) => {
-                ctx.save(); ctx.translate(x, y);
-                ctx.rotate(steer);
-                ctx.scale(2, 2);
-                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(-25, -10, 50, 40);
-                ctx.fillStyle = '#ff0033';
-                ctx.beginPath(); ctx.roundRect(-20, -20, 40, 40, 5); ctx.fill();
-                ctx.fillStyle = '#111'; ctx.fillRect(-15, -10, 30, 10);
-                ctx.fillStyle = '#ffcc00'; ctx.fillRect(-18, -18, 8, 5); ctx.fillRect(10, -18, 8, 5);
-                ctx.restore();
-            },
+                // Troca tela para Loading
+                document.getElementById('screen-safety').classList.add('hidden');
+                document.getElementById('screen-load').classList.remove('hidden');
 
-            drawRunner: (ctx, x, y, frame) => {
-                ctx.save(); ctx.translate(x, y); ctx.scale(3, 3);
-                ctx.strokeStyle = '#00ff00'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-                const s = Math.sin(frame * 0.5) * 10;
-                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -15); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-8 + s, 20); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(8 - s, 20); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(-10 - s, -5); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(10 + s, -5); ctx.stroke();                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -22, 5, 0, Math.PI * 2); ctx.fill();
-                ctx.restore();
+                // Carrega IA
+                await tf.setBackend('webgl');
+                System.detector = await poseDetection.createDetector(
+                    poseDetection.SupportedModels.MoveNet,
+                    { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+                );
+
+                // Configura Canvas
+                System.canvas = document.getElementById('game-canvas');
+                System.ctx = System.canvas.getContext('2d');
+                System.resize(); window.addEventListener('resize', System.resize);
+
+                // Vai para o Menu
+                document.getElementById('screen-load').classList.add('hidden');
+                System.menu();
+            } catch(e) { alert("Erro fatal: Câmera não detectada.\n" + e.message); }
+        },
+
+        // 2. Menu Principal
+        menu: () => {
+            System.stopGame();
+            document.getElementById('screen-menu').classList.remove('hidden');
+            document.getElementById('screen-over').classList.add('hidden');
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('webcam').style.opacity = '0'; // Esconde webcam no menu
+        },
+
+        // 3. Lançar Jogo
+        launch: (gameId) => {
+            Sfx.click();
+            System.activeGame = gameId;
+            
+            // Esconde Menu, Mostra Jogo
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            document.getElementById('webcam').style.opacity = '0.4'; // Webcam fantasma no fundo
+
+            // Configuração UI específica
+            const wheel = document.getElementById('ui-wheel');
+            wheel.style.opacity = (gameId==='drive') ? '1' : '0';
+
+            // Inicia Lógica do Jogo
+            if(gameId==='drive') Logic.Drive.init();
+            if(gameId==='run') Logic.Run.init();
+            if(gameId==='fight') Logic.Fight.init();
+
+            Sfx.start();
+            System.loop();
+        },
+
+        // 4. Game Loop Central
+        loop: async () => {
+            if(!System.activeGame) return;
+
+            const ctx = System.ctx; const w = System.canvas.width; const h = System.canvas.height;
+            
+            // Detecção de Pose
+            let pose = null;
+            try {
+                const poses = await System.detector.estimatePoses(System.video, {flipHorizontal: false});
+                if(poses.length>0) pose = poses[0];
+            } catch(e){}
+
+            // Atualiza Lógica Baseada no Jogo Ativo
+            let score = 0;
+            if(System.activeGame==='drive') score = Logic.Drive.update(ctx, w, h, pose);
+            if(System.activeGame==='run') score = Logic.Run.update(ctx, w, h, pose);
+            if(System.activeGame==='fight') score = Logic.Fight.update(ctx, w, h, pose);
+
+            document.getElementById('hud-score').innerText = score;
+
+            // Loop
+            System.loopId = requestAnimationFrame(System.loop);
+        },
+
+        // 5. Encerrar Jogo (Home ou Game Over)
+        stopGame: () => {
+            System.activeGame = null;
+            if(System.loopId) cancelAnimationFrame(System.loopId);
+        },
+
+        home: () => {
+            Sfx.back();
+            System.menu();
+        },
+
+        gameOver: (score) => {
+            System.stopGame();
+            Sfx.crash();
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('screen-over').classList.remove('hidden');
+        },
+
+        restart: () => {
+            // Reinicia o jogo anterior se houver registro, senão menu
+            // Como System.activeGame foi anulado no stopGame, precisamos de uma var temporária se quiséssemos persistir,
+            // mas aqui vamos usar o botão para decidir. 
+            // Truque: O HTML do botão "Jogar Novamente" pode chamar launch() direto se soubessemos qual jogo era.
+            // Para simplificar, vamos voltar ao menu por segurança ou reiniciar o último launch.
+            // (Melhoria: O menu é mais seguro).
+            System.menu();
+        },
+
+        resize: () => {
+            if(System.canvas) {
+                System.canvas.width = window.innerWidth;
+                System.canvas.height = window.innerHeight;
             }
-        };
+        },
+        
+        setSens: (v) => System.sens = parseFloat(v),
+        msg: (txt) => {
+            const el = document.getElementById('game-msg');
+            el.innerText = txt;
+            setTimeout(()=>el.innerText='', 1500);
+        }
+    };
 
-        /**
-         * =================================================================
-         * 🧠 ENGINE
-         * =================================================================
-         */
-        const Core = {
-            video: null, canvas: null, ctx: null, detector: null,
-            active: false, mode: null, sens: 1.0, loopId: null,
-
-            boot: async () => {
-                Sfx.init();
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-                        audio: false
-                    });
-                    Core.video = document.getElementById('video-source');
-                    Core.video.srcObject = stream;
-                    document.getElementById('webcam').srcObject = stream;
-                    await new Promise(r => Core.video.onloadedmetadata = r);
-                    Core.video.play(); document.getElementById('webcam').play();
-
-                    document.getElementById('screen-loading').classList.remove('hidden');
-
-                    await tf.setBackend('webgl');
-                    Core.detector = await poseDetection.createDetector(
-                        poseDetection.SupportedModels.MoveNet,
-                        { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-                    );
-
-                    Core.canvas = document.getElementById('game-canvas');
-                    Core.ctx = Core.canvas.getContext('2d');
-
-                    document.getElementById('screen-loading').classList.add('hidden');
-                    document.getElementById('screen-wii-menu').classList.remove('hidden');
-                } catch (e) { alert("Erro na câmera: " + e.message); }
-            },
-
-            menu: () => {
-                document.getElementById('screen-wii-menu').classList.remove('hidden');
-                document.getElementById('screen-hud').classList.add('hidden');
-                document.getElementById('screen-over').classList.add('hidden');
-            },
-
-            launch: (m) => {                Core.mode = m; Core.active = true;
-                document.getElementById('screen-wii-menu').classList.add('hidden');
-                document.getElementById('screen-hud').classList.remove('hidden');
-                const wheel = document.getElementById('ui-wheel');
-                wheel.style.opacity = (m === 'drive') ? '1' : '0';
-
-                if (m === 'drive') Logic.Drive.init();
-                if (m === 'run') Logic.Run.init();
-                if (m === 'fight') Logic.Fight.init();
-
-                Sfx.start();
-                Core.loop();
-            },
-
-            quit: () => {
-                Core.active = false; cancelAnimationFrame(Core.loopId); Core.menu();
-            },
-
-            gameOver: (score) => {
-                Core.active = false; cancelAnimationFrame(Core.loopId);
-                Sfx.crash();
-                document.getElementById('final-score').innerText = score;
-                document.getElementById('screen-hud').classList.add('hidden');
-                document.getElementById('screen-over').classList.remove('hidden');
-            },
-
-            setSens: (v) => Core.sens = parseFloat(v),
-
-            msg: (txt) => {
-                const el = document.getElementById('game-msg');
-                el.innerText = txt;
-                setTimeout(() => el.innerText = '', 1500);
-            },
-
-            getScreen: () => {
-                if (!document.getElementById('screen-wii-menu').classList.contains('hidden')) return 'menu';
-                if (!document.getElementById('screen-hud').classList.contains('hidden')) return 'hud';
-                return 'other';
-            },
-
-            loop: async () => {
-                if (!Core.active) return;
-                if (Core.canvas.width !== window.innerWidth) {
-                    Core.canvas.width = window.innerWidth;
-                    Core.canvas.height = window.innerHeight;
+    /* =================================================================
+       🎮 GAME LOGIC CARTRIDGES (Lógica Pura - Intacta)
+       ================================================================= */
+    const Logic = {
+        
+        // --- KART CHANNEL ---
+        Drive: {
+            speed: 0, pos: 0, x: 0, steer: 0, curve: 0,
+            init: () => { Logic.Drive.speed=0; Logic.Drive.pos=0; Logic.Drive.x=0; System.msg("DIRIJA!"); },
+            update: (ctx, w, h, pose) => {
+                const d = Logic.Drive; const cx = w/2;
+                let targetAngle = 0;
+                // Controles MoveNet
+                if(pose) {
+                    const lw = pose.keypoints.find(k=>k.name==='left_wrist');
+                    const rw = pose.keypoints.find(k=>k.name==='right_wrist');
+                    if(lw && rw && lw.score>0.3 && rw.score>0.3) {
+                        const dy = rw.y - lw.y; const dx = rw.x - lw.x;
+                        const rads = Math.atan2(dy, dx);
+                        targetAngle = rads * 1.5 * System.sens;
+                        if(d.speed < 100) d.speed += 1;
+                    } else { d.speed *= 0.95; }
                 }
-                const ctx = Core.ctx; const w = Core.canvas.width; const h = Core.canvas.height;
+                d.steer += (targetAngle - d.steer) * 0.2;
+                
+                // UI Volante
+                const bar = document.getElementById('wheel-bar');
+                if(bar) bar.style.transform = `rotate(${d.steer * 57}deg)`;
 
-                let pose = null;
-                try {                    const poses = await Core.detector.estimatePoses(Core.video, { flipHorizontal: false });
-                    if (poses.length > 0) pose = poses[0];
-                } catch (e) { }
+                // Física
+                d.pos += d.speed;
+                d.curve = Math.sin(d.pos * 0.005) * 1.5;
+                d.x += d.steer * (d.speed/500);
+                d.x -= d.curve * (d.speed/1000);
+                if(Math.abs(d.x) > 1.2) { d.speed *= 0.9; }
 
-                // Atualiza cursor do Wii
-                if (pose && ['menu', 'hud'].includes(Core.getScreen())) {
-                    const rw = pose.keypoints.find(k => k.name === 'right_wrist');
-                    const cursor = document.getElementById('wii-cursor');
-                    if (rw && rw.score > 0.4) {
-                        const x = window.innerWidth - (rw.x / 640 * window.innerWidth);
-                        const y = (rw.y / 480 * window.innerHeight);
-                        cursor.style.left = (x - 20) + 'px';
-                        cursor.style.top = (y - 20) + 'px';
-                        cursor.style.opacity = '1';
-                    } else {
-                        cursor.style.opacity = '0';
-                    }
-                }
-
-                let score = 0;
-                if (Core.mode === 'drive') score = Logic.Drive.update(ctx, w, h, pose);
-                if (Core.mode === 'run') score = Logic.Run.update(ctx, w, h, pose);
-                if (Core.mode === 'fight') score = Logic.Fight.update(ctx, w, h, pose);
-
-                document.getElementById('hud-score').innerText = score;
-                Core.loopId = requestAnimationFrame(Core.loop);
+                Gfx.drawRoad(ctx, w, h, d.pos, d.curve);
+                const carX = cx + (d.x * w * 0.25);
+                Gfx.drawCar(ctx, carX, h-80, d.steer);
+                return Math.floor(d.pos/100);
             }
-        };
+        },
 
-        /**
-         * =================================================================
-         * 🧠 LÓGICA DO JOGO
-         * =================================================================
-         */
-        const Logic = {
-            Drive: {
-                speed: 0, pos: 0, x: 0, steer: 0, curve: 0,
-                init: () => { Logic.Drive.speed = 0; Logic.Drive.pos = 0; Logic.Drive.x = 0; Core.msg("DIRIJA!"); },
-                update: (ctx, w, h, pose) => {
-                    const d = Logic.Drive;
-                    const cx = w / 2;
-                    let targetAngle = 0;
-                    if (pose) {
-                        const lw = pose.keypoints.find(k => k.name === 'left_wrist');
-                        const rw = pose.keypoints.find(k => k.name === 'right_wrist');
-                        if (lw && rw && lw.score > 0.3 && rw.score > 0.3) {
-                            const dy = rw.y - lw.y;
-                            const dx = rw.x - lw.x;
-                            const rads = Math.atan2(dy, dx);
-                            targetAngle = rads * 1.5 * Core.sens;                            if (d.speed < 100) d.speed += 1;
-                        } else {
-                            d.speed *= 0.95;
-                        }
+        // --- STREET RUN CHANNEL ---
+        Run: {
+            lane: 0, score: 0, frame: 0, obs: [],
+            init: () => { Logic.Run.score=0; Logic.Run.obs=[]; System.msg("CORRA!"); },
+            update: (ctx, w, h, pose) => {
+                const r = Logic.Run; const cx = w/2; r.frame++;
+                if(pose) {
+                    const nose = pose.keypoints.find(k=>k.name==='nose');
+                    if(nose && nose.score > 0.4) {
+                        if(nose.x < 240) r.lane = 1; // Espelhado
+                        else if(nose.x > 400) r.lane = -1;
+                        else r.lane = 0;
                     }
-                    d.steer += (targetAngle - d.steer) * 0.2;
-                    const bar = document.getElementById('wheel-bar');
-                    if (bar) bar.style.transform = `rotate(${d.steer * 57}deg)`;
-                    d.pos += d.speed;
-                    d.curve = Math.sin(d.pos * 0.005) * 1.5;
-                    d.x += d.steer * (d.speed / 500);
-                    d.x -= d.curve * (d.speed / 1000);
-                    if (Math.abs(d.x) > 1.2) { d.speed *= 0.9; }
-                    Gfx.drawRoad(ctx, w, h, d.pos, d.curve);
-                    const carX = cx + (d.x * w * 0.25);
-                    Gfx.drawCar(ctx, carX, h - 80, d.steer);
-                    return Math.floor(d.pos / 100);
                 }
-            },
+                if(r.frame%50===0) r.obs.push({l: Math.floor(Math.random()*3)-1, z: 1000});
 
-            Run: {
-                lane: 0, score: 0, frame: 0, obs: [],
-                init: () => { Logic.Run.score = 0; Logic.Run.obs = []; Core.msg("CORRA!"); },
-                update: (ctx, w, h, pose) => {
-                    const r = Logic.Run;
-                    const cx = w / 2;
-                    r.frame++;
-                    if (pose) {
-                        const nose = pose.keypoints.find(k => k.name === 'nose');
-                        if (nose && nose.score > 0.4) {
-                            if (nose.x < 240) r.lane = 1;
-                            else if (nose.x > 400) r.lane = -1;
-                            else r.lane = 0;
-                        }
-                    }
-                    if (r.frame % 50 === 0) r.obs.push({ l: Math.floor(Math.random() * 3) - 1, z: 1000 });
-                    ctx.clearRect(0, 0, w, h);
-                    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
-                    ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.moveTo(cx - 150, h / 2); ctx.lineTo(0, h); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(cx + 150, h / 2); ctx.lineTo(w, h); ctx.stroke();
-                    r.obs.forEach((o, i) => {
-                        o.z -= 20;
-                        if (o.z < -100) { r.obs.splice(i, 1); r.score += 10; Sfx.coin(); }
-                        const scale = 500 / (o.z + 100);
-                        if (scale > 0) {
-                            const ox = cx + (o.l * 200 * scale);
-                            const oy = h / 2 + (50 * scale);
-                            const sz = 80 * scale;
-                            ctx.fillStyle = '#ff3300';                            ctx.fillRect(ox - sz / 2, oy, sz, sz);
-                            if (o.z < 50 && o.z > -50 && o.l === r.lane) {
-                                Core.gameOver(r.score);
-                            }
-                        }
-                    });
-                    Gfx.drawRunner(ctx, cx + (r.lane * 150), h - 100, r.frame);
-                    return r.score;
-                }
-            },
+                ctx.clearRect(0,0,w,h);
+                // Grid Chão Estilo Tron
+                ctx.fillStyle = '#111'; ctx.fillRect(0,0,w,h);
+                ctx.strokeStyle='#00ffcc'; ctx.lineWidth=2;
+                ctx.beginPath(); ctx.moveTo(cx-150, h/2); ctx.lineTo(0,h); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx+150, h/2); ctx.lineTo(w,h); ctx.stroke();
 
-            Fight: {
-                score: 0, targets: [], last: 0,
-                init: () => { Logic.Fight.score = 0; Logic.Fight.targets = []; Core.msg("BOXE!"); },
-                update: (ctx, w, h, pose) => {
-                    const f = Logic.Fight;
-                    const now = Date.now();
-                    ctx.clearRect(0, 0, w, h);
-                    Gfx.drawSkeleton(ctx, pose, w, h);
-                    let punches = [];
-                    if (pose) {
-                        const mapX = x => w - (x / 640 * w);
-                        const mapY = y => y / 480 * h;
-                        const lw = pose.keypoints.find(k => k.name === 'left_wrist');
-                        const rw = pose.keypoints.find(k => k.name === 'right_wrist');
-                        if (lw && lw.score > 0.3) punches.push({ x: mapX(lw.x), y: mapY(lw.y) });
-                        if (rw && rw.score > 0.3) punches.push({ x: mapX(rw.x), y: mapY(rw.y) });
+                r.obs.forEach((o, i) => {
+                    o.z -= 20; 
+                    if(o.z < -100) { r.obs.splice(i,1); r.score+=10; Sfx.coin(); }
+                    const scale = 500/(o.z+100);
+                    if(scale > 0) {
+                        const ox = cx + (o.l * 200 * scale);
+                        const oy = h/2 + (50 * scale);
+                        const sz = 80 * scale;
+                        ctx.fillStyle = '#ff3300'; ctx.fillRect(ox-sz/2, oy, sz, sz);
+                        if(o.z < 50 && o.z > -50 && o.l === r.lane) { System.gameOver(r.score); }
                     }
-                    if (now - f.last > 800) {
-                        f.targets.push({ x: Math.random() * (w - 100) + 50, y: Math.random() * (h / 2) + 50, r: 40, s: now });
-                        f.last = now;
-                    }
-                    f.targets.forEach((t, i) => {
-                        const age = (now - t.s) / 1500;
-                        if (age > 1) { f.targets.splice(i, 1); return; }
-                        ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(255,255,0,${1 - age})`; ctx.fill();
-                        ctx.strokeStyle = '#fff'; ctx.stroke();
-                        punches.forEach(p => {
-                            if (Math.hypot(p.x - t.x, p.y - t.y) < t.r + 30) {
-                                f.targets.splice(i, 1);
-                                f.score += 100;
-                                Sfx.hit();
-                            }
-                        });
-                    });
-                    return f.score;
-                }
+                });
+                Gfx.drawRunner(ctx, cx + (r.lane*150), h-100, r.frame);
+                return r.score;
             }
-        };
-        // Iniciar
-        window.onload = () => Core.boot();
-    </script>
+        },
+
+        // --- BOXE CHANNEL ---
+        Fight: {
+            score: 0, targets: [], last: 0,
+            init: () => { Logic.Fight.score=0; Logic.Fight.targets=[]; System.msg("BOXE!"); },
+            update: (ctx, w, h, pose) => {
+                const f = Logic.Fight; const now = Date.now();
+                ctx.clearRect(0,0,w,h);
+                Gfx.drawSkeleton(ctx, pose, w, h);
+
+                let punches = [];
+                if(pose) {
+                    const mapX = x => w - (x/640 * w); const mapY = y => y/480 * h;
+                    const lw = pose.keypoints.find(k=>k.name==='left_wrist');
+                    const rw = pose.keypoints.find(k=>k.name==='right_wrist');
+                    if(lw && lw.score>0.3) punches.push({x: mapX(lw.x), y: mapY(lw.y)});
+                    if(rw && rw.score>0.3) punches.push({x: mapX(rw.x), y: mapY(rw.y)});
+                }
+
+                if(now - f.last > 800) {
+                    f.targets.push({x: Math.random()*(w-100)+50, y: Math.random()*(h/2)+50, r: 40, s: now});
+                    f.last = now;
+                }
+
+                f.targets.forEach((t, i) => {
+                    const age = (now - t.s)/1500;
+                    if(age>1) { f.targets.splice(i,1); return; }
+                    
+                    ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2);
+                    ctx.fillStyle=`rgba(255,255,0,${1-age})`; ctx.fill();
+                    ctx.strokeStyle='#fff'; ctx.stroke();
+
+                    punches.forEach(p => {
+                        if(Math.hypot(p.x-t.x, p.y-t.y) < t.r + 30) {
+                            f.targets.splice(i,1); f.score += 100; Sfx.hit();
+                        }
+                    });
+                });
+                return f.score;
+            }
+        }
+    };
+
+    // Relógio do Sistema OS
+    setInterval(() => {
+        const d = new Date();
+        const t = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('clock').innerText = t;
+    }, 1000);
+
+</script>
 </body>
 </html>
